@@ -1,0 +1,41 @@
+// Estructura de carpetas para roles y pantallas principales
+// src/components/
+//   Auth/
+//     Login.jsx
+//     Register.jsx
+//   Admin/
+//     Dashboard.jsx
+//     UserManagement.jsx
+//     Incidents.jsx
+//     History.jsx
+//     Settings.jsx
+//   Officer/
+//     Dashboard.jsx
+//     Alerts.jsx
+//     Reports.jsx
+//     Validation.jsx
+//     Settings.jsx
+//   Passenger/
+//     Dashboard.jsx
+//     MyProcedures.jsx
+//     Help.jsx
+//     Documentation.jsx
+//   Shared/
+//     Navbar.jsx
+//     Sidebar.jsx
+//     Footer.jsx
+// src/routes/
+//   index.jsx
+//   adminRoutes.jsx
+//   officerRoutes.jsx
+//   passengerRoutes.jsx
+// src/services/
+//   api.js
+// src/context/
+//   AuthContext.jsx
+// src/utils/
+//   helpers.js
+// src/styles/
+//   (archivos css por componente o globales)
+
+// Este archivo es solo una referencia de la estructura inicial recomendada.
