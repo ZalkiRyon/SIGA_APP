@@ -8,6 +8,8 @@ import NewVehicleProcedure from '../components/Passenger/NewVehicleProcedure';
 import NewMinorProcedure from '../components/Passenger/NewMinorProcedure';
 import NewFoodPetProcedure from '../components/Passenger/NewFoodPetProcedure';
 import EditVehicleProcedure from '../components/Passenger/EditVehicleProcedure';
+import EditMinorProcedure from '../components/Passenger/EditMinorProcedure';
+import EditFoodPetProcedure from '../components/Passenger/EditFoodPetProcedure';
 
 // Rutas para Pasajero/Turista
 export default function PassengerRoutes({ user }) {
@@ -21,7 +23,9 @@ export default function PassengerRoutes({ user }) {
       <Route path="/passenger/tramite/vehiculo" element={<NewVehicleProcedure />} />
       <Route path="/passenger/tramite/menores" element={<NewMinorProcedure />} />
       <Route path="/passenger/tramite/alimentos" element={<NewFoodPetProcedure />} />
-      <Route path="/passenger/tramite/vehiculo/edit" element={<EditVehicleProcedure />} />
+      <Route path="/passenger/tramite/vehiculo/edit/:id" element={<EditVehicleProcedure />} />
+      <Route path="/passenger/tramite/menores/edit/:id" element={<EditMinorProcedure />} />
+      <Route path="/passenger/tramite/alimentos/edit/:id" element={<EditFoodPetProcedure />} />
       <Route path="*" element={<Navigate to="/passenger" replace />} />
     </Routes>
   );

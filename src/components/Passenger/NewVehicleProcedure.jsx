@@ -5,6 +5,24 @@ import { crearTramiteVehiculo } from '../../services/api';
 import '../../styles/global.css';
 import './MyProcedures.css';
 
+function SuccessModal({ open, onClose, message }) {
+  if (!open) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+    }}>
+      <div style={{
+        background: '#fff', padding: '2.5rem 2rem', borderRadius: 12, boxShadow: '0 2px 16px #0002', minWidth: 320,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24
+      }}>
+        <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 8 }}>{message}</div>
+        <button onClick={onClose} style={{ padding: '0.5em 2em', fontSize: 18, borderRadius: 6, background: '#1a4fa3', color: '#fff', border: 'none', cursor: 'pointer' }}>Aceptar</button>
+      </div>
+    </div>
+  );
+}
+
 export default function NewVehicleProcedure() {
   const { user } = useAuth();
   const [form, setForm] = useState({
@@ -27,6 +45,7 @@ export default function NewVehicleProcedure() {
   });
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Placeholder para fechas automáticas
   React.useEffect(() => {
@@ -52,7 +71,7 @@ export default function NewVehicleProcedure() {
     setMensaje(null);
     try {
       await crearTramiteVehiculo(form, user?.id);
-      setMensaje('Trámite enviado exitosamente.');
+      setModalOpen(true);
       setForm({
         patente: '', marca: '', modelo: '', anio: '', color: '', fechaInicio: '', fechaTermino: '',
         docs: { cedula: null, licencia: null, revision: null, salida: null, autorizacion: null, certificado: null, seguro: null }
@@ -132,6 +151,7 @@ export default function NewVehicleProcedure() {
           </div>
           {mensaje && <div className="veh-mensaje-envio">{mensaje}</div>}
         </form>
+        <SuccessModal open={modalOpen} onClose={() => setModalOpen(false)} message="Solicitud creada con éxito." />
       </main>
     </div>
   );

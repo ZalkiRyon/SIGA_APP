@@ -1,17 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../Shared/Sidebar';
 import { useAuth } from '../../context/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { crearTramiteVehiculo } from '../../services/api';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { crearTramiteVehiculo, getTramiteVehiculoById, editarTramiteVehiculo } from '../../services/api';
 import '../../styles/global.css';
 import './MyProcedures.css';
 
+function SuccessModal({ open, onClose, message, redirect }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        if (redirect) navigate(redirect);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [open, redirect, navigate]);
+  if (!open) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+    }}>
+      <div style={{
+        background: '#fff', padding: '2.5rem 2rem', borderRadius: 12, boxShadow: '0 2px 16px #0002', minWidth: 320,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24
+      }}>
+        <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 8 }}>{message}</div>
+        <button onClick={() => { onClose(); if (redirect) navigate(redirect); }} style={{ padding: '0.5em 2em', fontSize: 18, borderRadius: 6, background: '#1a4fa3', color: '#fff', border: 'none', cursor: 'pointer' }}>Aceptar</button>
+      </div>
+    </div>
+  );
+}
+
 export default function EditVehicleProcedure() {
   const { user } = useAuth();
-  const location = useLocation();
+  const { id } = useParams();
   const navigate = useNavigate();
-  // Recibe tramite y modo desde location.state
-  const tramite = location.state?.tramite;
   const [form, setForm] = useState({
     patente: '',
     marca: '',
@@ -32,31 +57,38 @@ export default function EditVehicleProcedure() {
   });
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  // Precarga los datos del trámite recibido
+  // Cargar datos del trámite por ID
   useEffect(() => {
-    if (tramite) {
-      setForm(f => ({
-        ...f,
-        patente: tramite.patente || '',
-        marca: tramite.marca || '',
-        modelo: tramite.modelo || '',
-        anio: tramite.anio || '',
-        color: tramite.color || '',
-        fechaInicio: tramite.fechaInicio || '',
-        fechaTermino: tramite.fechaTermino || '',
-        docs: {
-          cedula: null,
-          licencia: null,
-          revision: null,
-          salida: null,
-          autorizacion: null,
-          certificado: null,
-          seguro: null,
-        },
-      }));
+    async function fetchTramite() {
+      try {
+        const tramite = await getTramiteVehiculoById(id);
+        setForm(f => ({
+          ...f,
+          patente: tramite.patente || '',
+          marca: tramite.marca || '',
+          modelo: tramite.modelo || '',
+          anio: tramite.anio || '',
+          color: tramite.color || '',
+          fechaInicio: tramite.fechaInicio || '',
+          fechaTermino: tramite.fechaTermino || '',
+          docs: {
+            cedula: null,
+            licencia: null,
+            revision: null,
+            salida: null,
+            autorizacion: null,
+            certificado: null,
+            seguro: null,
+          },
+        }));
+      } catch (err) {
+        setMensaje('Error al cargar trámite');
+      }
     }
-  }, [tramite]);
+    fetchTramite();
+  }, [id]);
 
   const handleInput = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -72,11 +104,8 @@ export default function EditVehicleProcedure() {
     setEnviando(true);
     setMensaje(null);
     try {
-      // Aquí deberías llamar a un endpoint de edición, pero por ahora reutilizamos crearTramiteVehiculo
-      await crearTramiteVehiculo(form, user?.id, tramite?.id); // Se puede adaptar para update
-      setMensaje('Solicitud editada exitosamente.');
-      // Opcional: navegar de vuelta a mis trámites
-      // navigate('/passenger/mis-tramites');
+      await editarTramiteVehiculo(form, user?.id, id);
+      setModalOpen(true);
     } catch (err) {
       setMensaje(err.message);
     } finally {
@@ -151,6 +180,7 @@ export default function EditVehicleProcedure() {
           </div>
           {mensaje && <div className="veh-mensaje-envio">{mensaje}</div>}
         </form>
+        <SuccessModal open={modalOpen} onClose={() => setModalOpen(false)} message="Solicitud editada exitosamente." redirect="/passenger" />
       </main>
     </div>
   );

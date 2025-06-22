@@ -329,3 +329,185 @@ const PORT = 4000;
 app.listen(PORT, () => {
   console.log(`Backend SIGA escuchando en http://localhost:${PORT}`);
 });
+
+// Obtener trámite de vehículo por ID
+app.get('/api/tramite/vehiculo/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error: 'Falta id' });
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute(
+      `SELECT id, user_id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino, estado, fecha_creacion,
+        archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro
+       FROM tramites_vehiculo WHERE id = ? LIMIT 1`,
+      [id]
+    );
+    await conn.end();
+    if (!rows.length) return res.status(404).json({ error: 'Trámite no encontrado' });
+    const row = rows[0];
+    res.json({
+      id: row.id,
+      userId: row.user_id,
+      patente: row.patente,
+      marca: row.marca,
+      modelo: row.modelo,
+      anio: row.anio,
+      color: row.color,
+      fechaInicio: row.fecha_inicio ? row.fecha_inicio.toISOString().split('T')[0] : '',
+      fechaTermino: row.fecha_termino ? row.fecha_termino.toISOString().split('T')[0] : '',
+      estado: row.estado,
+      archivos: {
+        cedula: row.archivo_cedula,
+        licencia: row.archivo_licencia,
+        revision: row.archivo_revision,
+        salida: row.archivo_salida,
+        autorizacion: row.archivo_autorizacion,
+        certificado: row.archivo_certificado,
+        seguro: row.archivo_seguro
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para editar trámite de vehículo temporal
+app.put('/api/tramite/vehiculo/:id', upload.fields([
+  { name: 'cedula', maxCount: 1 },
+  { name: 'licencia', maxCount: 1 },
+  { name: 'revision', maxCount: 1 },
+  { name: 'salida', maxCount: 1 },
+  { name: 'autorizacion', maxCount: 1 },
+  { name: 'certificado', maxCount: 1 },
+  { name: 'seguro', maxCount: 1 },
+]), async (req, res) => {
+  const tramiteId = req.params.id;
+  const { patente, marca, modelo, anio, color, fechaInicio, fechaTermino, userId } = req.body;
+  if (!patente || !marca || !modelo || !anio || !color || !fechaInicio || !fechaTermino || !userId) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    // Obtener archivos actuales
+    const [rows] = await conn.execute('SELECT * FROM tramites_vehiculo WHERE id = ?', [tramiteId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    const actual = rows[0];
+    // Archivos: si no se sube uno nuevo, mantener el anterior
+    const archivos = {
+      cedula: req.files['cedula'] ? req.files['cedula'][0].filename : actual.archivo_cedula,
+      licencia: req.files['licencia'] ? req.files['licencia'][0].filename : actual.archivo_licencia,
+      revision: req.files['revision'] ? req.files['revision'][0].filename : actual.archivo_revision,
+      salida: req.files['salida'] ? req.files['salida'][0].filename : actual.archivo_salida,
+      autorizacion: req.files['autorizacion'] ? req.files['autorizacion'][0].filename : actual.archivo_autorizacion,
+      certificado: req.files['certificado'] ? req.files['certificado'][0].filename : actual.archivo_certificado,
+      seguro: req.files['seguro'] ? req.files['seguro'][0].filename : actual.archivo_seguro,
+    };
+    await conn.execute(
+      `UPDATE tramites_vehiculo SET patente=?, marca=?, modelo=?, anio=?, color=?, fecha_inicio=?, fecha_termino=?, archivo_cedula=?, archivo_licencia=?, archivo_revision=?, archivo_salida=?, archivo_autorizacion=?, archivo_certificado=?, archivo_seguro=? WHERE id=?`,
+      [patente, marca, modelo, anio, color, fechaInicio, fechaTermino, archivos.cedula, archivos.licencia, archivos.revision, archivos.salida, archivos.autorizacion, archivos.certificado, archivos.seguro, tramiteId]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Trámite actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+app.get('/api/tramite/menores/:id', async (req, res) => {
+  const tramiteId = req.params.id;
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute('SELECT * FROM tramites_menores WHERE id = ?', [tramiteId]);
+    await conn.end();
+    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    const row = rows[0];
+    res.json({
+      id: row.id,
+      menorNombres: row.menor_nombres,
+      menorApellidos: row.menor_apellidos,
+      menorRut: row.menor_rut,
+      menorNacimiento: row.menor_nacimiento ? row.menor_nacimiento.toISOString().split('T')[0] : '',
+      acompNombres: row.acomp_nombres,
+      acompApellidos: row.acomp_apellidos,
+      acompRut: row.acomp_rut,
+      archivos: {
+        identidad: row.archivo_identidad,
+        autorizacion: row.archivo_autorizacion
+      },
+      estado: row.estado
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+app.put('/api/tramite/menores/:id', upload.fields([
+  { name: 'docIdentidad', maxCount: 1 },
+  { name: 'docAutorizacion', maxCount: 1 },
+]), async (req, res) => {
+  const tramiteId = req.params.id;
+  const { menorNombres, menorApellidos, menorRut, menorNacimiento, acompNombres, acompApellidos, acompRut, userId } = req.body;
+  if (!menorNombres || !menorApellidos || !menorRut || !menorNacimiento || !acompNombres || !acompApellidos || !acompRut || !userId) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute('SELECT * FROM tramites_menores WHERE id = ?', [tramiteId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    const actual = rows[0];
+    const archivos = {
+      identidad: req.files['docIdentidad'] ? req.files['docIdentidad'][0].filename : actual.archivo_identidad,
+      autorizacion: req.files['docAutorizacion'] ? req.files['docAutorizacion'][0].filename : actual.archivo_autorizacion,
+    };
+    await conn.execute(
+      `UPDATE tramites_menores SET menor_nombres=?, menor_apellidos=?, menor_rut=?, menor_nacimiento=?, acomp_nombres=?, acomp_apellidos=?, acomp_rut=?, archivo_identidad=?, archivo_autorizacion=? WHERE id=?`,
+      [menorNombres, menorApellidos, menorRut, menorNacimiento, acompNombres, acompApellidos, acompRut, archivos.identidad, archivos.autorizacion, tramiteId]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Trámite actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+app.get('/api/tramite/alimentos/:id', async (req, res) => {
+  const tramiteId = req.params.id;
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute('SELECT * FROM tramites_alimentos WHERE id = ?', [tramiteId]);
+    await conn.end();
+    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    const row = rows[0];
+    res.json({
+      id: row.id,
+      tipo: row.tipo,
+      cantidad: row.cantidad,
+      transporte: row.transporte,
+      descripcion: row.descripcion,
+      estado: row.estado
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+app.put('/api/tramite/alimentos/:id', async (req, res) => {
+  const tramiteId = req.params.id;
+  const { tipo, cantidad, transporte, descripcion, userId } = req.body;
+  if (!tipo || !cantidad || !transporte || !descripcion || !userId) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute('SELECT * FROM tramites_alimentos WHERE id = ?', [tramiteId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    await conn.execute(
+      `UPDATE tramites_alimentos SET tipo=?, cantidad=?, transporte=?, descripcion=? WHERE id=?`,
+      [tipo, cantidad, transporte, descripcion, tramiteId]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Trámite actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});

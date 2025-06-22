@@ -144,10 +144,10 @@ export default function MyProcedures() {
   function AccionTramite({ tramite }) {
     const handleEditar = () => {
       let ruta = '';
-      if (tramite.tipo === 'Vehículos') ruta = '/passenger/tramite/vehiculo/edit';
-      else if (tramite.tipo === 'Menores de edad') ruta = '/passenger/tramite/menores';
-      else if (tramite.tipo === 'Mascotas o alimentos') ruta = '/passenger/tramite/alimentos';
-      navigate(ruta, { state: { tramite, modo: 'editar' } });
+      if (tramite.tipo === 'Vehículos') ruta = `/passenger/tramite/vehiculo/edit/${tramite.id}`;
+      else if (tramite.tipo === 'Menores de edad') ruta = `/passenger/tramite/menores/edit/${tramite.id}`;
+      else if (tramite.tipo === 'Mascotas o alimentos') ruta = `/passenger/tramite/alimentos/edit/${tramite.id}`;
+      navigate(ruta);
     };
     if (tramite.estado === 'Aprobado') {
       if (tramite.archivos && Object.values(tramite.archivos).some(Boolean)) {
