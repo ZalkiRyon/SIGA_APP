@@ -61,6 +61,33 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
+// Registro de usuario pasajero/turista
+app.post('/api/register', async (req, res) => {
+  const { nombre, apellidos, rut, telefono, sexo, region, comuna, direccion, email, password } = req.body;
+  if (!nombre || !apellidos || !rut || !sexo || !region || !comuna || !direccion || !email || !password) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    // Verificar si el correo ya existe
+    const [exists] = await conn.execute('SELECT id FROM users WHERE email = ?', [email]);
+    if (exists.length > 0) {
+      await conn.end();
+      return res.status(409).json({ error: 'El correo ya está registrado' });
+    }
+    // Insertar usuario como pasajero/turista
+    await conn.execute(
+      `INSERT INTO users (nombre, apellidos, rut, telefono, sexo, region, comuna, direccion, email, password, role, name)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'passenger', ?)`,
+      [nombre, apellidos, rut, telefono, sexo, region, comuna, direccion, email, password, nombre + ' ' + apellidos]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Usuario registrado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
 // Iniciar servidor
 const PORT = 4000;
 app.listen(PORT, () => {

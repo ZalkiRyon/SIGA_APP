@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +41,12 @@ export default function ForgotPassword() {
       <form onSubmit={handleSubmit} style={{ background: '#fff', padding: '2.5rem 2rem', borderRadius: 10, boxShadow: '0 2px 12px #0001', minInlineSize: 320 }}>
         <h2 style={{ marginBlockEnd: 24, textAlign: 'center', color: '#222', fontWeight: 700 }}>Recuperar contraseña</h2>
         {successMsg && (
-          <div style={{ color: 'green', marginBlockEnd: 16, textAlign: 'center' }}>{successMsg}</div>
+          <>
+            <div style={{ color: 'green', marginBlockEnd: 16, textAlign: 'center' }}>{successMsg}</div>
+            <button type="button" onClick={() => navigate('/login')} style={{ inlineSize: '100%', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '0.7rem', fontWeight: 600, fontSize: '1.08rem', cursor: 'pointer' }}>
+              Volver al inicio
+            </button>
+          </>
         )}
         {!sent && (
           <>
@@ -55,8 +62,11 @@ export default function ForgotPassword() {
               autoFocus
             />
             {error && <div style={{ color: 'red', marginBlockEnd: 12, textAlign: 'center' }}>{error}</div>}
-            <button type="submit" style={{ inlineSize: '100%', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '0.7rem', fontWeight: 600, fontSize: '1.08rem', cursor: 'pointer' }}>
+            <button type="submit" style={{ inlineSize: '100%', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '0.7rem', fontWeight: 600, fontSize: '1.08rem', cursor: 'pointer', marginBottom: 10 }}>
               Enviar instrucciones
+            </button>
+            <button type="button" onClick={() => navigate('/login')} style={{ inlineSize: '100%', background: '#eee', color: '#1976d2', border: '1.5px solid #1976d2', borderRadius: 6, padding: '0.7rem', fontWeight: 600, fontSize: '1.08rem', cursor: 'pointer' }}>
+              Volver al inicio
             </button>
           </>
         )}

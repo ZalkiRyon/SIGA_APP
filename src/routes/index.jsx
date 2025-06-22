@@ -7,7 +7,7 @@ import OfficerRoutes from './officerRoutes';
 import PassengerRoutes from './passengerRoutes';
 
 // Rutas principales de la aplicación
-export default function Routes({ tipo, user }) {
+export default function AppRoutes({ tipo, user }) {
   if (tipo === 'public') {
     return (
       <Switch>

@@ -1,1 +1,31 @@
 /* Estilos globales o por componente */
+
+/* Ajustes para máxima compatibilidad lógica y eliminación de advertencias */
+.doc-page { display: flex; min-block-size: 100vh; }
+.doc-main { flex: 1; padding-inline: 0 2rem; }
+.doc-header { display: flex; justify-content: space-between; align-items: center; margin-block: 2rem 1rem; }
+.doc-title { font-size: 2rem; font-weight: 500; border-block-end: 2px solid #222; padding-block-end: 0.2em; }
+.doc-userbar { display: flex; align-items: center; gap: 1rem; }
+.doc-bell { font-size: 1.3rem; }
+.doc-username { font-weight: 400; }
+.doc-content {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.doc-accordion {
+  flex: none;
+  min-inline-size: 350px;
+  max-inline-size: 500px;
+  inline-size: 100%;
+  margin-inline-start: 0;
+}
+.doc-panel-title { background: #f4f7fa; border: 1px solid #b5c6d6; padding: 0.7em 1em; font-weight: 500; }
+.doc-panel-title.active { background: #dbeafe; }
+.doc-panel-body { border: 1px solid #b5c6d6; border-block-start: none; padding: 1em 1.5em; background: #fff; }
+.doc-link { color: #1a4fa3; text-decoration: underline; cursor: pointer; }
+.doc-note { font-size: 0.95em; color: #555; margin-block-end: 0.5em; }
+.doc-updates { flex: 1; min-inline-size: 220px; }
+.doc-updates-title { font-weight: 500; margin-block-end: 0.5em; }
+.doc-updates ul { background: #f8fafc; border: 1px solid #b5c6d6; padding: 0.7em 1em; list-style: none; margin: 0; }
+.doc-updates li { font-size: 0.98em; }
