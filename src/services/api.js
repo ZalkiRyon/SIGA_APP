@@ -120,18 +120,24 @@ export async function getTramitesMenores(userId) {
   return data;
 }
 
-export async function crearTramiteAlimentos(form, userId) {
-  const body = {
-    tipo: form.tipo,
-    cantidad: form.cantidad,
-    transporte: form.transporte,
-    descripcion: form.descripcion,
-    userId
-  };
+export async function crearTramiteAlimentos(form, userId, docsMascota, tipoMascota) {
+  const formData = new FormData();
+  formData.append('tipo', form.tipo);
+  formData.append('transporte', form.transporte);
+  formData.append('userId', userId);
+  if (form.tipo === 'mascota') {
+    formData.append('tipoMascota', tipoMascota);
+    if (docsMascota.registro) formData.append('registro', docsMascota.registro);
+    if (docsMascota.vacunas) formData.append('vacunas', docsMascota.vacunas);
+    if (docsMascota.desparasitacion) formData.append('desparasitacion', docsMascota.desparasitacion);
+    if (docsMascota.zoo) formData.append('zoo', docsMascota.zoo);
+  } else {
+    formData.append('cantidad', form.cantidad);
+    formData.append('descripcion', form.descripcion);
+  }
   const response = await fetch('http://localhost:4000/api/tramite/alimentos', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: formData
   });
   let data;
   try {
@@ -263,18 +269,24 @@ export async function getTramiteAlimentosById(id) {
   return data;
 }
 
-export async function editarTramiteAlimentos(form, userId, tramiteId) {
-  const body = {
-    tipo: form.tipo,
-    cantidad: form.cantidad,
-    transporte: form.transporte,
-    descripcion: form.descripcion,
-    userId
-  };
+export async function editarTramiteAlimentos(form, userId, tramiteId, docsMascota, tipoMascota) {
+  const formData = new FormData();
+  formData.append('tipo', form.tipo);
+  formData.append('transporte', form.transporte);
+  formData.append('userId', userId);
+  if (form.tipo === 'mascota') {
+    formData.append('tipoMascota', tipoMascota);
+    if (docsMascota.registro) formData.append('registro', docsMascota.registro);
+    if (docsMascota.vacunas) formData.append('vacunas', docsMascota.vacunas);
+    if (docsMascota.desparasitacion) formData.append('desparasitacion', docsMascota.desparasitacion);
+    if (docsMascota.zoo) formData.append('zoo', docsMascota.zoo);
+  } else {
+    formData.append('cantidad', form.cantidad);
+    formData.append('descripcion', form.descripcion);
+  }
   const response = await fetch(`http://localhost:4000/api/tramite/alimentos/${tramiteId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: formData
   });
   let data;
   try {

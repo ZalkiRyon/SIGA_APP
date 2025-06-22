@@ -43,13 +43,16 @@ export default function MyProcedures() {
             fechaInicio: t.menorNacimiento,
             fechaTermino: '',
             tipo: 'Menores de edad',
-          })),
-          ...alimentos.map(t => ({
-            ...t,
-            tipo: 'Mascotas o alimentos',
-            fechaInicio: t.fechaInicio || (t.fecha_creacion ? t.fecha_creacion.split('T')[0] : ''),
-            fechaTermino: '',
-          }))
+          })).filter(t => t.menorNombres && t.menorApellidos && t.menorRut), // Solo trámites válidos
+          ...alimentos
+            .filter(t => t && (t.tipo === 'mascota' || t.tipo === 'animal' || t.tipo === 'vegetal'))
+            .map(t => ({
+              ...t,
+              tipo: 'Mascotas o alimentos',
+              // Usamos los campos que vienen directamente del backend
+              fechaInicio: t.fechaInicio,
+              fechaTermino: t.fechaTermino || '',
+            }))
         ];
         setTramites(all);
       } catch (err) {
@@ -247,7 +250,7 @@ export default function MyProcedures() {
                 ) : (
                   filtered.map((p) => (
                     <tr key={p.id}>
-                      <td>{p.id}</td>
+                      <td>{p.id}</td> {/* custom_id ya viene como id desde el backend */}
                       <td>{p.fechaInicio}</td>
                       <td>{p.fechaTermino || '---'}</td>
                       <td>{p.tipo}</td>

@@ -102,6 +102,26 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Función auxiliar para obtener y actualizar el custom_id
+async function generarCustomId(conn, tipo) {
+  // Mapear tipo a prefijo
+  const prefijos = {
+    vehiculo: 'VEH',
+    menores: 'MEN',
+    animal: 'ANI',
+    vegetal: 'VEG',
+    mascota: 'MAS'
+  };
+  const prefijo = prefijos[tipo];
+  if (!prefijo) throw new Error('Tipo de trámite inválido para custom_id');
+  // Obtener y actualizar correlativo
+  const [rows] = await conn.execute('SELECT last_number FROM tramite_sequences WHERE tipo = ? FOR UPDATE', [tipo]);
+  let next = 1;
+  if (rows.length > 0) next = rows[0].last_number + 1;
+  await conn.execute('UPDATE tramite_sequences SET last_number = ? WHERE tipo = ?', [next, tipo]);
+  return `${prefijo}-${String(next).padStart(4, '0')}`;
+}
+
 // Endpoint para guardar trámite de vehículo temporal
 app.post('/api/tramite/vehiculo', upload.fields([
   { name: 'cedula', maxCount: 1 },
@@ -124,11 +144,12 @@ app.post('/api/tramite/vehiculo', upload.fields([
       return res.status(400).json({ error: 'Faltan archivos obligatorios' });
     }
     const conn = await mysql.createConnection(dbConfig);
+    const customId = await generarCustomId(conn, 'vehiculo');
     await conn.execute(
       `INSERT INTO tramites_vehiculo
         (user_id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino,
-         archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro, custom_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId, patente, marca, modelo, anio, color, fechaInicio, fechaTermino,
         files.cedula[0].filename,
@@ -137,11 +158,12 @@ app.post('/api/tramite/vehiculo', upload.fields([
         files.salida[0].filename,
         files.autorizacion ? files.autorizacion[0].filename : null,
         files.certificado[0].filename,
-        files.seguro[0].filename
+        files.seguro[0].filename,
+        customId
       ]
     );
     await conn.end();
-    res.json({ ok: true, message: 'Trámite guardado exitosamente' });
+    res.json({ ok: true, message: 'Trámite guardado exitosamente', customId });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
@@ -150,19 +172,18 @@ app.post('/api/tramite/vehiculo', upload.fields([
 // Obtener trámites de vehículo temporal por usuario
 app.get('/api/tramites/vehiculo', async (req, res) => {
   const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'Falta userId' });
-  try {
+  if (!userId) return res.status(400).json({ error: 'Falta userId' });  try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute(
       `SELECT id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino, estado, fecha_creacion,
-        archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro
+        archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro, custom_id
        FROM tramites_vehiculo WHERE user_id = ? ORDER BY fecha_creacion DESC`,
       [userId]
     );
     await conn.end();
     // Formatear fechas y campos para frontend
     const data = rows.map(row => ({
-      id: row.id,
+      id: row.custom_id || row.id, // Mostrar custom_id si existe
       fechaInicio: row.fecha_inicio ? row.fecha_inicio.toISOString().split('T')[0] : '',
       fechaTermino: row.fecha_termino ? row.fecha_termino.toISOString().split('T')[0] : '',
       tipo: 'Vehículo temporal',
@@ -201,20 +222,22 @@ app.post('/api/tramite/menores', upload.fields([
       return res.status(400).json({ error: 'Faltan archivos obligatorios' });
     }
     const conn = await mysql.createConnection(dbConfig);
+    const customId = await generarCustomId(conn, 'menores');
     await conn.execute(
       `INSERT INTO tramites_menores
         (user_id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento,
-         acomp_nombres, acomp_apellidos, acomp_rut, archivo_identidad, archivo_autorizacion)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         acomp_nombres, acomp_apellidos, acomp_rut, archivo_identidad, archivo_autorizacion, custom_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId, menorNombres, menorApellidos, menorRut, menorNacimiento,
         acompNombres, acompApellidos, acompRut,
         files.docIdentidad[0].filename,
-        files.docAutorizacion[0].filename
+        files.docAutorizacion[0].filename,
+        customId
       ]
     );
     await conn.end();
-    res.json({ ok: true, message: 'Trámite de menores guardado exitosamente' });
+    res.json({ ok: true, message: 'Trámite de menores guardado exitosamente', customId });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
@@ -224,16 +247,15 @@ app.post('/api/tramite/menores', upload.fields([
 app.get('/api/tramites/menores', async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: 'Falta userId' });
-  try {
-    const conn = await mysql.createConnection(dbConfig);
+  try {    const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute(
-      `SELECT id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento, acomp_nombres, acomp_apellidos, acomp_rut, estado, fecha_creacion, archivo_identidad, archivo_autorizacion
+      `SELECT id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento, acomp_nombres, acomp_apellidos, acomp_rut, estado, fecha_creacion, archivo_identidad, archivo_autorizacion, custom_id
        FROM tramites_menores WHERE user_id = ? ORDER BY fecha_creacion DESC`,
       [userId]
     );
     await conn.end();
     const data = rows.map(row => ({
-      id: row.id,
+      id: row.custom_id || row.id, // Mostrar custom_id si existe
       menorNombres: row.menor_nombres,
       menorApellidos: row.menor_apellidos,
       menorRut: row.menor_rut,
@@ -255,50 +277,46 @@ app.get('/api/tramites/menores', async (req, res) => {
 });
 
 // Endpoint para guardar trámite de alimentos/mascotas (Declaración SAG)
-app.post('/api/tramite/alimentos', async (req, res) => {
+app.post('/api/tramite/alimentos', upload.fields([
+  { name: 'registro', maxCount: 1 },
+  { name: 'vacunas', maxCount: 1 },
+  { name: 'desparasitacion', maxCount: 1 },
+  { name: 'zoo', maxCount: 1 },
+]), async (req, res) => {
   try {
-    const { tipo, cantidad, transporte, descripcion, userId } = req.body;
-    if (!tipo || !cantidad || !transporte || !descripcion || !userId) {
+    const { tipo, cantidad, transporte, descripcion, userId, tipoMascota } = req.body;
+    if (!tipo || !transporte || !userId || (tipo !== 'mascota' && (!cantidad || !descripcion))) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
     const conn = await mysql.createConnection(dbConfig);
-    await conn.execute(
-      `INSERT INTO tramites_alimentos
-        (user_id, tipo, cantidad, transporte, descripcion)
-       VALUES (?, ?, ?, ?, ?)`,
-      [userId, tipo, cantidad, transporte, descripcion]
+    // Determinar tipo para secuencia
+    let tipoSecuencia = tipo;
+    if (tipo !== 'mascota' && tipo !== 'animal' && tipo !== 'vegetal') tipoSecuencia = 'animal';
+    const customId = await generarCustomId(conn, tipoSecuencia);    // Insertar trámite principal
+    const [result] = await conn.execute(
+      `INSERT INTO tramites_alimentos (user_id, tipo, cantidad, transporte, descripcion, custom_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, tipo, tipo === 'mascota' ? 1 : cantidad, transporte, tipo === 'mascota' ? descripcion || '' : descripcion, customId]
     );
+    const tramiteId = result.insertId;
+    // Si es mascota, guardar documentos
+    if (tipo === 'mascota') {
+      if (!tipoMascota || !req.files['registro'] || !req.files['vacunas'] || !req.files['desparasitacion'] || !req.files['zoo']) {
+        await conn.end();
+        return res.status(400).json({ error: 'Faltan documentos de mascota' });
+      }
+      await conn.execute(
+        `INSERT INTO documentos_mascotas (tramite_id, tipo_mascota, archivo_registro, archivo_vacunas, archivo_desparasitacion, archivo_zoo)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [tramiteId, tipoMascota,
+          req.files['registro'][0].filename,
+          req.files['vacunas'][0].filename,
+          req.files['desparasitacion'][0].filename,
+          req.files['zoo'][0].filename]
+      );
+    }
     await conn.end();
-    res.json({ ok: true, message: 'Trámite de alimentos/mascotas guardado exitosamente' });
-  } catch (err) {
-    res.status(500).json({ error: 'Error en el servidor', details: err.message });
-  }
-});
-
-// Endpoint para obtener trámites de alimentos/mascotas por usuario
-app.get('/api/tramites/alimentos', async (req, res) => {
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'Falta userId' });
-  try {
-    const conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute(
-      `SELECT id, tipo, cantidad, transporte, descripcion, estado, fecha_creacion
-       FROM tramites_alimentos WHERE user_id = ? ORDER BY fecha_creacion DESC`,
-      [userId]
-    );
-    await conn.end();
-    const data = rows.map(row => ({
-      id: row.id,
-      tipo: row.tipo === 'vegetal' ? 'Mascotas o alimentos' : (row.tipo === 'animal' ? 'Mascotas o alimentos' : 'Mascotas o alimentos'),
-      detalleTipo: row.tipo,
-      cantidad: row.cantidad,
-      transporte: row.transporte,
-      descripcion: row.descripcion,
-      fechaInicio: row.fecha_creacion ? row.fecha_creacion.toISOString().split('T')[0] : '',
-      fechaTermino: '',
-      estado: row.estado,
-    }));
-    res.json(data);
+    res.json({ ok: true, message: 'Trámite guardado correctamente', customId });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
@@ -308,7 +326,7 @@ app.get('/api/tramites/alimentos', async (req, res) => {
 app.get('/api/archivo/:tipo/:filename', async (req, res) => {
   const { tipo, filename } = req.params;
   // Validar tipo permitido
-  const allowedTypes = ['vehiculo', 'menores'];
+  const allowedTypes = ['vehiculo', 'menores', 'alimentos']; // Se agregó 'alimentos'
   if (!allowedTypes.includes(tipo)) {
     return res.status(400).json({ error: 'Tipo de archivo no permitido' });
   }
@@ -470,43 +488,175 @@ app.put('/api/tramite/menores/:id', upload.fields([
   }
 });
 
+// Obtener trámite de alimentos/mascotas por ID (incluye documentos de mascota si aplica)
 app.get('/api/tramite/alimentos/:id', async (req, res) => {
   const tramiteId = req.params.id;
   try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute('SELECT * FROM tramites_alimentos WHERE id = ?', [tramiteId]);
-    await conn.end();
-    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    if (rows.length === 0) {
+      await conn.end();
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
     const row = rows[0];
+    let mascota = null;
+    if (row.tipo === 'mascota') {
+      const [docs] = await conn.execute('SELECT * FROM documentos_mascotas WHERE tramite_id = ?', [tramiteId]);
+      if (docs.length > 0) mascota = docs[0];
+    }
+    await conn.end();
     res.json({
       id: row.id,
       tipo: row.tipo,
       cantidad: row.cantidad,
       transporte: row.transporte,
       descripcion: row.descripcion,
-      estado: row.estado
+      estado: row.estado,
+      mascota
     });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
 });
 
-app.put('/api/tramite/alimentos/:id', async (req, res) => {
+// Endpoint para editar trámite de alimentos/mascotas (incluye edición de documentos de mascota)
+app.put('/api/tramite/alimentos/:id', upload.fields([
+  { name: 'registro', maxCount: 1 },
+  { name: 'vacunas', maxCount: 1 },
+  { name: 'desparasitacion', maxCount: 1 },
+  { name: 'zoo', maxCount: 1 },
+]), async (req, res) => {
   const tramiteId = req.params.id;
-  const { tipo, cantidad, transporte, descripcion, userId } = req.body;
-  if (!tipo || !cantidad || !transporte || !descripcion || !userId) {
+  const { tipo, cantidad, transporte, descripcion, userId, tipoMascota } = req.body;
+  if (!tipo || !transporte || !userId || (tipo !== 'mascota' && (!cantidad || !descripcion))) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
   try {
     const conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute('SELECT * FROM tramites_alimentos WHERE id = ?', [tramiteId]);
-    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
+    // Actualizar trámite principal
     await conn.execute(
       `UPDATE tramites_alimentos SET tipo=?, cantidad=?, transporte=?, descripcion=? WHERE id=?`,
-      [tipo, cantidad, transporte, descripcion, tramiteId]
+      [tipo, tipo === 'mascota' ? 1 : cantidad, transporte, tipo === 'mascota' ? descripcion || '' : descripcion, tramiteId]
     );
+    // Si es mascota, actualizar documentos
+    if (tipo === 'mascota') {
+      const [docs] = await conn.execute('SELECT * FROM documentos_mascotas WHERE tramite_id = ?', [tramiteId]);
+      if (docs.length > 0) {
+        const actual = docs[0];
+        await conn.execute(
+          `UPDATE documentos_mascotas SET tipo_mascota=?, archivo_registro=?, archivo_vacunas=?, archivo_desparasitacion=?, archivo_zoo=? WHERE tramite_id=?`,
+          [
+            tipoMascota || actual.tipo_mascota,
+            req.files['registro'] ? req.files['registro'][0].filename : actual.archivo_registro,
+            req.files['vacunas'] ? req.files['vacunas'][0].filename : actual.archivo_vacunas,
+            req.files['desparasitacion'] ? req.files['desparasitacion'][0].filename : actual.archivo_desparasitacion,
+            req.files['zoo'] ? req.files['zoo'][0].filename : actual.archivo_zoo,
+            tramiteId
+          ]
+        );
+      }
+    }
     await conn.end();
     res.json({ ok: true, message: 'Trámite actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para aprobar un trámite de alimentos
+app.put('/api/tramites/alimentos/:id/aprobar', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const fecha_aprobacion = new Date().toISOString().split('T')[0];
+    
+    // Actualizar el estado y fecha de aprobación
+    await conn.execute(
+      `UPDATE tramites_alimentos SET estado = 'Aprobado', fecha_aprobacion = ? WHERE id = ?`,
+      [fecha_aprobacion, id]
+    );
+    
+    await conn.end();
+    res.json({ success: true, message: 'Trámite aprobado correctamente', fecha_aprobacion });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para rechazar un trámite de alimentos
+app.put('/api/tramites/alimentos/:id/rechazar', async (req, res) => {
+  const { id } = req.params;
+  const { motivo } = req.body;
+  
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const fecha_rechazo = new Date().toISOString().split('T')[0];
+    
+    // Actualizar el estado y fecha de rechazo
+    await conn.execute(
+      `UPDATE tramites_alimentos SET estado = 'Rechazado', fecha_rechazo = ? WHERE id = ?`,
+      [fecha_rechazo, id]
+    );
+    
+    await conn.end();
+    res.json({ success: true, message: 'Trámite rechazado correctamente', fecha_rechazo });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Obtener trámites de alimentos/mascotas (incluye mascotas) por usuario
+app.get('/api/tramites/alimentos', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'Falta userId' });
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute(
+      `SELECT id, tipo, cantidad, transporte, descripcion, estado, fecha_creacion, fecha_aprobacion, fecha_rechazo, custom_id FROM tramites_alimentos WHERE user_id = ? ORDER BY fecha_creacion DESC`,
+      [userId]
+    );
+    // Para trámites de tipo mascota, obtener documentos asociados
+    const data = await Promise.all(rows.map(async row => {
+      let documentos = null;
+      if (row.tipo === 'mascota') {
+        const [docs] = await conn.execute(
+          `SELECT tipo_mascota, archivo_registro, archivo_vacunas, archivo_desparasitacion, archivo_zoo FROM documentos_mascotas WHERE tramite_id = ?`,
+          [row.id]
+        );
+        if (docs.length > 0) {
+          documentos = {
+            tipoMascota: docs[0].tipo_mascota,
+            registro: docs[0].archivo_registro,
+            vacunas: docs[0].archivo_vacunas,
+            desparasitacion: docs[0].archivo_desparasitacion,
+            zoo: docs[0].archivo_zoo
+          };
+        }
+      }
+      
+      // Determinar fecha de término basada en el estado y las fechas disponibles
+      let fechaTermino = null;
+      if (row.estado === 'Aprobado' && row.fecha_aprobacion) {
+        fechaTermino = new Date(row.fecha_aprobacion).toISOString().split('T')[0];
+      } else if (row.estado === 'Rechazado' && row.fecha_rechazo) {
+        fechaTermino = new Date(row.fecha_rechazo).toISOString().split('T')[0];
+      }
+      
+      return {
+        id: row.custom_id || row.id, // Mostrar custom_id si existe
+        tipo: row.tipo,
+        cantidad: row.tipo === 'mascota' ? null : row.cantidad,
+        transporte: row.transporte,
+        descripcion: row.descripcion,
+        estado: row.estado,
+        fechaCreacion: row.fecha_creacion,
+        fechaInicio: new Date(row.fecha_creacion).toISOString().split('T')[0],
+        fechaTermino: fechaTermino,
+        documentosMascota: documentos
+      };
+    }));
+    await conn.end();
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }

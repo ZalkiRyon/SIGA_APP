@@ -34,18 +34,26 @@ export default function EditFoodPetProcedure() {
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [mostrarMascota, setMostrarMascota] = useState(false);
+  const [tipoMascota, setTipoMascota] = useState('');
+  const [docsMascota, setDocsMascota] = useState({ registro: null, vacunas: null, desparasitacion: null, zoo: null });
+  const [archivosActuales, setArchivosActuales] = useState({});
 
   useEffect(() => {
     async function fetchTramite() {
       try {
         const tramite = await getTramiteAlimentosById(id);
-        setForm(f => ({
-          ...f,
-          tipo: tramite.tipo || '',
-          cantidad: tramite.cantidad || 1,
-          transporte: tramite.transporte || '',
-          descripcion: tramite.descripcion || '',
-        }));
+        setForm(f => ({ ...f, tipo: tramite.tipo || '', cantidad: tramite.cantidad || 1, transporte: tramite.transporte || '', descripcion: tramite.descripcion || '' }));
+        setMostrarMascota(tramite.tipo === 'mascota');
+        if (tramite.mascota) {
+          setTipoMascota(tramite.mascota.tipo_mascota || '');
+          setArchivosActuales({
+            registro: tramite.mascota.archivo_registro,
+            vacunas: tramite.mascota.archivo_vacunas,
+            desparasitacion: tramite.mascota.archivo_desparasitacion,
+            zoo: tramite.mascota.archivo_zoo
+          });
+        }
       } catch (err) {
         setMensaje('Error al cargar trámite');
       }
@@ -60,12 +68,15 @@ export default function EditFoodPetProcedure() {
   const handleTipo = e => {
     setForm(f => ({ ...f, tipo: e.target.value }));
   };
+  const handleDocMascota = e => {
+    setDocsMascota(d => ({ ...d, [e.target.name]: e.target.files[0] }));
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setEnviando(true);
     setMensaje(null);
     try {
-      await editarTramiteAlimentos(form, user?.id, id);
+      await editarTramiteAlimentos(form, user?.id, id, docsMascota, tipoMascota);
       setModalOpen(true);
     } catch (err) {
       setMensaje(err.message);
@@ -73,6 +84,8 @@ export default function EditFoodPetProcedure() {
       setEnviando(false);
     }
   };
+
+  const urlArchivo = (nombre) => nombre ? `http://localhost:4000/api/archivo/alimentos/${nombre}` : null;
 
   return (
     <div className="tram-page">
@@ -112,6 +125,49 @@ export default function EditFoodPetProcedure() {
               </div>
             </div>
           </section>
+          {mostrarMascota && (
+            <section className="veh-mascota">
+              <div className="veh-datos-title">Datos de la mascota</div>
+              <div className="veh-datos-grid">
+                <div className="veh-field" style={{ marginTop: 16 }}>
+                  <label>Tipo de mascota</label>
+                  <select value={tipoMascota} onChange={e => setTipoMascota(e.target.value)}>
+                    <option value="">Selecciona</option>
+                    <option value="Perro">Perro</option>
+                    <option value="Gato">Gato</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+                <div className="veh-info" style={{ marginTop: 16, marginBottom: 16, maxWidth: 600 }}>
+                  <span className="veh-info-icon">i</span>
+                  <span>Toda mascota debe tener un identificador ya sea un collar, un tatuaje, etc... Para mayor información <a href="#" style={{ color: '#1976d2', textDecoration: 'underline' }}>revise la documentación aquí</a></span>
+                </div>
+                <div style={{ fontWeight: 500, fontSize: 20, margin: '18px 0 10px 0' }}>Documentos</div>
+                <div className="veh-docs-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  <div className="veh-doc-field">
+                    <label>Registro nacional de mascotas*</label>
+                    <input type="file" name="registro" accept=".jpg,.jpeg,.png,.pdf" onChange={handleDocMascota} />
+                    {archivosActuales.registro && <a href={urlArchivo(archivosActuales.registro)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#1976d2', textDecoration: 'underline', marginTop: 4, display: 'inline-block' }}>Descargar actual</a>}
+                  </div>
+                  <div className="veh-doc-field">
+                    <label>Certificado desparasitación *</label>
+                    <input type="file" name="desparasitacion" accept=".jpg,.jpeg,.png,.pdf" onChange={handleDocMascota} />
+                    {archivosActuales.desparasitacion && <a href={urlArchivo(archivosActuales.desparasitacion)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#1976d2', textDecoration: 'underline', marginTop: 4, display: 'inline-block' }}>Descargar actual</a>}
+                  </div>
+                  <div className="veh-doc-field">
+                    <label>Certificado vacunas *</label>
+                    <input type="file" name="vacunas" accept=".jpg,.jpeg,.png,.pdf" onChange={handleDocMascota} />
+                    {archivosActuales.vacunas && <a href={urlArchivo(archivosActuales.vacunas)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#1976d2', textDecoration: 'underline', marginTop: 4, display: 'inline-block' }}>Descargar actual</a>}
+                  </div>
+                  <div className="veh-doc-field">
+                    <label>Certificado zoo sanitario de exportación *</label>
+                    <input type="file" name="zoo" accept=".jpg,.jpeg,.png,.pdf" onChange={handleDocMascota} />
+                    {archivosActuales.zoo && <a href={urlArchivo(archivosActuales.zoo)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#1976d2', textDecoration: 'underline', marginTop: 4, display: 'inline-block' }}>Descargar actual</a>}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
           <div className="veh-form-actions">
             <button type="button" className="veh-btn-atras" onClick={() => navigate(-1)} disabled={enviando}>Atrás</button>
             <button type="submit" className="veh-btn-enviar" disabled={enviando}>Editar solicitud</button>
