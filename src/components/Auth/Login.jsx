@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import './Login.css';
+import { login as loginApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 // Componente de Login para autenticación de usuarios
 export default function Login() {
@@ -7,25 +9,21 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    // Simulación de autenticación básica
-    if (!email || !password) {
-      setError('Por favor, ingrese su correo y contraseña.');
-      return;
-    }
-    // Aquí iría la lógica real de autenticación (API)
-    if (email === 'admin@siga.cl' && password === 'admin123') {
-      alert('¡Bienvenido, Administrador!');
-      // Redirigir según rol
-    } else if (email === 'funcionario@siga.cl' && password === 'funcionario123') {
-      alert('¡Bienvenido, Funcionario Aduanero!');
-    } else if (email === 'pasajero@siga.cl' && password === 'pasajero123') {
-      alert('¡Bienvenido, Pasajero/Turista!');
-    } else {
-      setError('Credenciales incorrectas.');
+    setLoading(true);
+    try {
+      const result = await loginApi(email, password);
+      login(result.user); // Guardar usuario en contexto y localStorage
+      window.location.reload(); // Forzar recarga para redirigir según rol
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,6 +54,7 @@ export default function Login() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
 
@@ -70,6 +69,7 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
             <span
               className="icon-eye"
@@ -83,8 +83,8 @@ export default function Login() {
 
           <a href="#" className="forgot-link">¿Olvidaste tu contraseña?</a>
 
-          <button type="submit" className="btn-main">Ingresar</button>
-          <button type="button" className="btn-secondary">Ingresar con clave única</button>
+          <button type="submit" className="btn-main" disabled={loading}>{loading ? 'Ingresando...' : 'Ingresar'}</button>
+          <button type="button" className="btn-secondary" disabled={loading}>Ingresar con clave única</button>
         </form>
         <div className="register-link">
           ¿No tienes cuenta? <a href="#">Regístrate aquí.</a>

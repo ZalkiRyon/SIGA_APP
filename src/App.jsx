@@ -1,15 +1,11 @@
-import { useState } from 'react'
+import { useAuth } from './context/AuthContext';
 import './App.css'
-import Login from './components/Auth/Login';
+import Routes from './routes';
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <Login />
-    </>
-  )
+  const { user } = useAuth();
+  if (!user) return <Routes tipo="public" />;
+  return <Routes tipo={user.role} user={user} />;
 }
 
 export default App

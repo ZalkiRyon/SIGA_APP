@@ -11,10 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(100) NOT NULL
 );
 
--- Datos de prueba
+-- Datos de prueba (contraseñas en texto plano para pruebas)
 INSERT INTO users (email, password, role, name) VALUES
-('admin@siga.cl', '$2b$10$Q9Qw1Qw1Qw1Qw1Qw1Qw1QeQw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1', 'admin', 'Administrador'),
-('funcionario@siga.cl', '$2b$10$Q9Qw1Qw1Qw1Qw1Qw1Qw1QeQw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1', 'officer', 'Funcionario Aduanero'),
-('pasajero@siga.cl', '$2b$10$Q9Qw1Qw1Qw1Qw1Qw1Qw1QeQw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1', 'passenger', 'Pasajero/Turista');
-
--- Las contraseñas están hasheadas con bcrypt para 'admin123', 'funcionario123', 'pasajero123' respectivamente.
+('admin@siga.cl', 'admin123', 'admin', 'Administrador'),
+('funcionario@siga.cl', 'funcionario123', 'officer', 'Funcionario Aduanero'),
+('pasajero@siga.cl', 'pasajero123', 'passenger', 'Pasajero/Turista');
