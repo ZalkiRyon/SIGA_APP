@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Login.css';
 import { login as loginApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -14,15 +14,35 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Clear any existing tokens on login page load to prevent stale tokens
+    localStorage.removeItem('token');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       const result = await loginApi(email, password);
-      login(result.user); // Guardar usuario en contexto y localStorage
-      window.location.reload(); // Forzar recarga para redirigir según rol
+      console.log('Login response:', result);
+      if (!result.token) {
+        throw new Error('No se recibió token de autenticación');
+      }
+      login(result.user, result.token); // Guardar usuario y token en contexto y localStorage
+      console.log('User role:', result.user.role);
+      console.log('Token saved:', localStorage.getItem('token'));
+      
+      // Redirigir según rol en vez de recargar la página
+      if (result.user.role === 'admin') {
+        navigate('/admin');
+      } else if (result.user.role === 'officer') {
+        navigate('/officer');
+      } else {
+        navigate('/passenger');
+      }
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

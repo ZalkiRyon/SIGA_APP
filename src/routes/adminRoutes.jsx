@@ -3,7 +3,7 @@ import AdminDashboard from '../components/Admin/Dashboard';
 import UserManagement from '../components/Admin/UserManagement';
 import Incidents from '../components/Admin/Incidents';
 import History from '../components/Admin/History';
-import AdminSettings from '../components/Admin/Settings';
+import AdminSettings from '../components/Admin/Settings_new';
 
 // Rutas para Administrador
 export default function AdminRoutes({ user }) {

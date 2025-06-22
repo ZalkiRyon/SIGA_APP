@@ -5,6 +5,7 @@ const mysql = require('mysql2/promise');
 // const bcrypt = require('bcrypt'); // No se usará para esta prueba
 const multer = require('multer');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,30 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Middleware para autenticar token JWT
+function authenticateToken(req, res, next) {
+  console.log('Authenticating request to:', req.path);
+  
+  const authHeader = req.headers['authorization'];
+  console.log('Auth header:', authHeader);
+  
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(token, 'secreto', (err, user) => {
+    if (err) {
+      console.log('Token verification failed:', err.message);
+      return res.status(403).json({ error: 'Token invalid or expired' });
+    }
+    console.log('Token verified successfully for user:', user);
+    req.user = user;
+    next();
+  });
+}
+
 // Ruta de autenticación
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
@@ -50,7 +75,9 @@ app.post('/api/login', async (req, res) => {
     }
     // No se envía la contraseña al frontend
     const { password: _, ...userData } = user;
-    res.json({ user: userData });
+    // Generar token JWT
+    const token = jwt.sign({ id: user.id, role: user.role }, 'secreto', { expiresIn: '1h' });
+    res.json({ user: userData, token });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
@@ -660,4 +687,317 @@ app.get('/api/tramites/alimentos', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
+});
+
+// Endpoint para obtener todos los usuarios (solo para admin)
+app.get('/api/users', authenticateToken, async (req, res) => {
+  console.log('GET /api/users - User role:', req.user.role);
+  
+  if (req.user.role !== 'admin') {
+    console.log('Access denied - User is not admin');
+    return res.status(403).json({ error: 'Acceso denegado: se requiere rol de administrador' });
+  }
+
+  try {    
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute('SELECT id, nombre, apellidos, rut, email, role, name, estado, perfil FROM users');
+    await conn.end();
+    
+    console.log(`Retrieved ${rows.length} users from database`);
+
+    const formattedUsers = rows.map(user => {
+      let acciones = ['editar'];
+      // Determinar acciones basadas en el rol
+      if (user.role === 'admin') {
+        // No permitir eliminar o inhabilitar administradores
+        acciones = ['editar'];
+      } else if (user.role === 'officer') {
+        // Funcionarios pueden ser inhabilitados
+        acciones.push('inhabilitar');
+      } else {
+        // Pasajeros pueden ser eliminados
+        acciones.push('eliminar');
+      }
+
+      // Mapear role a texto en español
+      let rol = 'Pasajero';
+      if (user.role === 'admin') rol = 'Administrador';
+      else if (user.role === 'officer') rol = 'Funcionario Aduanero';
+
+      return {
+        id: user.id,
+        rut: user.rut || '(No registrado)',
+        nombre: user.nombre && user.apellidos ? `${user.nombre} ${user.apellidos}` : user.name,
+        rol,
+        acciones,
+        estado: user.estado || 'activo',
+        perfil: user.perfil
+      };
+    });
+
+    res.json(formattedUsers);
+  } catch (err) {
+    res.status(500).json({ error: 'Error del servidor', details: err.message });
+  }
+});
+
+// Endpoint para crear un nuevo usuario (solo admin)
+app.post('/api/users', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const { nombre, apellidos, rut, email, password, role, telefono, sexo, region, comuna, direccion, estado, perfil } = req.body;
+
+  // Validaciones
+  if (!email || !password || !role || !nombre || !apellidos || !rut || !sexo || !region || !comuna || !direccion) {
+    return res.status(400).json({ error: 'Datos incompletos. Todos los campos marcados con * son obligatorios.' });
+  }
+
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Verificar si el email ya existe
+    const [exists] = await conn.execute('SELECT id FROM users WHERE email = ?', [email]);
+    if (exists.length > 0) {
+      await conn.end();
+      return res.status(400).json({ error: 'El email ya está registrado' });
+    }
+    
+    // Verificar si el RUT ya existe
+    const [rutExists] = await conn.execute('SELECT id FROM users WHERE rut = ?', [rut]);
+    if (rutExists.length > 0) {
+      await conn.end();
+      return res.status(400).json({ error: 'El RUT ya está registrado' });
+    }
+
+    // Crear usuario
+    const name = `${nombre} ${apellidos}`; // Nombre completo para mostrar
+    const [result] = await conn.execute(
+      `INSERT INTO users (nombre, apellidos, rut, telefono, sexo, region, comuna, direccion, email, password, role, name, estado, perfil)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, apellidos, rut, telefono || '', sexo, region, comuna, direccion, email, password, role, name, estado || 'activo', perfil || null]
+    );
+
+    await conn.end();
+    res.status(201).json({ id: result.insertId, message: 'Usuario creado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error del servidor', details: err.message });
+  }
+});
+
+// Endpoint para actualizar un usuario (solo admin)
+app.put('/api/users/:id', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const userId = req.params.id;
+  const { nombre, apellidos, rut, email, telefono, sexo, region, comuna, direccion, role, password } = req.body;
+
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Verificar si el usuario existe
+    const [user] = await conn.execute('SELECT id FROM users WHERE id = ?', [userId]);
+    if (user.length === 0) {
+      await conn.end();
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Construir query dinámica para actualizar solo los campos proporcionados
+    let updateFields = [];
+    let params = [];
+
+    if (nombre !== undefined) { updateFields.push('nombre = ?'); params.push(nombre); }
+    if (apellidos !== undefined) { updateFields.push('apellidos = ?'); params.push(apellidos); }
+    if (rut !== undefined) { updateFields.push('rut = ?'); params.push(rut); }
+    if (email !== undefined) { updateFields.push('email = ?'); params.push(email); }
+    if (telefono !== undefined) { updateFields.push('telefono = ?'); params.push(telefono); }
+    if (sexo !== undefined) { updateFields.push('sexo = ?'); params.push(sexo); }
+    if (region !== undefined) { updateFields.push('region = ?'); params.push(region); }
+    if (comuna !== undefined) { updateFields.push('comuna = ?'); params.push(comuna); }
+    if (direccion !== undefined) { updateFields.push('direccion = ?'); params.push(direccion); }
+    if (role !== undefined) { updateFields.push('role = ?'); params.push(role); }
+    if (password !== undefined) { updateFields.push('password = ?'); params.push(password); }
+
+    if (updateFields.length === 0) {
+      await conn.end();
+      return res.status(400).json({ error: 'No se proporcionaron campos para actualizar' });
+    }
+
+    // Agregar id al final de los parámetros
+    params.push(userId);
+
+    // Ejecutar la actualización
+    await conn.execute(
+      `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+      params
+    );
+
+    await conn.end();
+    res.json({ message: 'Usuario actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error del servidor', details: err.message });
+  }
+});
+
+// Endpoint para eliminar un usuario (solo admin)
+app.delete('/api/users/:id', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const userId = req.params.id;
+
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Verificar que el usuario existe y no es admin
+    const [user] = await conn.execute('SELECT role FROM users WHERE id = ?', [userId]);
+    
+    if (user.length === 0) {
+      await conn.end();
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    if (user[0].role === 'admin') {
+      await conn.end();
+      return res.status(403).json({ error: 'No se puede eliminar un usuario administrador' });
+    }
+    
+    // Eliminar usuario
+    await conn.execute('DELETE FROM users WHERE id = ?', [userId]);
+    
+    await conn.end();
+    res.json({ message: 'Usuario eliminado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error del servidor', details: err.message });
+  }
+});
+
+// Endpoint para cambiar estado de usuario (habilitar/inhabilitar) - por implementar
+// Nota: Requiere añadir columna "estado" a la tabla users
+app.put('/api/users/:id/toggle-status', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const userId = req.params.id;
+  
+  // Nota: Este endpoint es un placeholder. 
+  // Para implementarlo completamente, necesitarías añadir un campo 'estado' a la tabla users
+  
+  res.json({ message: 'Estado de usuario cambiado (simulado)', userId });
+});
+
+// Endpoint para obtener todas las incidencias (solo para admin)
+app.get('/api/incidents', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  // Simulamos datos de incidencias
+  // En una implementación real, estos datos vendrían de una tabla en la base de datos
+  const incidents = [
+    { id: 'SYS-205', tipo: 'API Aduana AR: Error de conexión (Timeout)', estado: 'No resuelto', tiempo: '45 minutos', prioridad: 'Alta', fechaCreacion: new Date(Date.now() - 45 * 60000) },
+    { id: 'SEC-101', tipo: 'Seguridad: 5 intentos fallidos', estado: 'No resuelto', tiempo: '1.2 horas', prioridad: 'Alta', fechaCreacion: new Date(Date.now() - 72 * 60000) },
+    { id: 'DB-003', tipo: 'Base de datos: Lentitud queries', estado: 'En progreso', tiempo: '15 minutos', prioridad: 'Media', fechaCreacion: new Date(Date.now() - 15 * 60000) },
+    { id: 'API-042', tipo: 'API SAG: Timeout en validación', estado: 'Resuelto', tiempo: '3.5 horas', prioridad: 'Media', fechaCreacion: new Date(Date.now() - 210 * 60000) },
+    { id: 'UI-107', tipo: 'Formulario de menores: Error validación', estado: 'En progreso', tiempo: '30 minutos', prioridad: 'Baja', fechaCreacion: new Date(Date.now() - 30 * 60000) }
+  ];
+
+  res.json(incidents);
+});
+
+// Endpoint para actualizar una incidencia (solo admin)
+app.put('/api/incidents/:id', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const id = req.params.id;
+  const { estado, prioridad } = req.body;
+
+  // En una implementación real, aquí actualizaríamos la incidencia en la base de datos
+  res.json({ 
+    message: `Incidencia ${id} actualizada`, 
+    data: { id, estado, prioridad }
+  });
+});
+
+// Endpoint para obtener el historial completo (solo para admin)
+app.get('/api/history', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  // Simulamos datos de historial
+  // En una implementación real, estos datos vendrían de una tabla en la base de datos
+  const historyData = [
+    { fecha: '15/05 14:30', usuario: 'Func-101', accion: 'Aprobó trámite #TR-6068', ip: '192.168.1.5' },
+    { fecha: '15/05 11:15', usuario: 'Func-100', accion: 'Rechazó trámite #TR-6011', ip: '10.0.0.12' },
+    { fecha: '14/05 17:22', usuario: 'Admin-01', accion: 'Creó usuario Func-102', ip: '192.168.1.10' },
+    { fecha: '14/05 09:45', usuario: 'Func-100', accion: 'Aprobó trámite #TR-6010', ip: '10.0.0.12' },
+    { fecha: '13/05 16:30', usuario: 'Func-101', accion: 'Rechazó trámite #TR-6005', ip: '192.168.1.5' }
+  ];
+
+  res.json(historyData);
+});
+
+// Endpoint para generar reporte de historial (solo admin)
+app.post('/api/history/report', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const { reportType, range } = req.body;
+
+  // Validación de parámetros
+  if (!reportType || !range) {
+    return res.status(400).json({ error: 'Tipo de reporte y rango son requeridos' });
+  }
+
+  // En una implementación real, aquí generaríamos un PDF basado en los parámetros
+  // Por ahora, solo devolvemos una respuesta simulada
+  res.json({ 
+    message: `Reporte generado: ${reportType} - ${range}`, 
+    downloadUrl: '/path/to/report.pdf'
+  });
+});
+
+// Endpoints para configuraciones de usuario
+app.get('/api/settings', authenticateToken, async (req, res) => {
+  // En una implementación real, estas configuraciones se obtendrían de la base de datos
+  // para el usuario actual (req.user.id)
+  
+  // Datos de muestra
+  const userSettings = {
+    darkMode: false,
+    defaultView: 'inicio',
+    keyboardShortcuts: {
+      usersManagement: 'CTRL + F',
+      history: 'CTRL + A'
+    }
+  };
+  
+  res.json(userSettings);
+});
+
+app.put('/api/settings', authenticateToken, async (req, res) => {
+  const settings = req.body;
+  
+  // Validar los datos recibidos
+  if (!settings) {
+    return res.status(400).json({ error: 'Datos de configuración no proporcionados' });
+  }
+  
+  // En una implementación real, guardaríamos estas configuraciones en la base de datos
+  // para el usuario actual (req.user.id)
+  
+  res.json({ 
+    success: true, 
+    message: 'Configuración actualizada correctamente',
+    settings
+  });
 });
