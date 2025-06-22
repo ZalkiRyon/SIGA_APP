@@ -108,7 +108,7 @@ export default function Documentation() {
 	return (
 		<div className="doc-page">
 			<Sidebar />
-			<div className="doc-main">
+			<div className="doc-main" style={{ paddingInlineStart: 32 }}>
 				<header className="doc-header">
 					<span className="doc-title">Documentación</span>
 					<div className="doc-userbar">

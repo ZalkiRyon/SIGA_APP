@@ -1,0 +1,188 @@
+.tram-main {
+  flex: 1;
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  background: #fff;
+}
+.tram-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.tram-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+.tram-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+.tram-title {
+  font-size: 2.5rem;
+  font-weight: 500;
+  border-bottom: 3px solid #222;
+  padding-bottom: 0.2em;
+  display: inline-block;
+  width: max-content;
+  margin-bottom: 0;
+}
+.tram-userbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.tram-bell {
+  font-size: 1.5rem;
+  position: relative;
+  cursor: pointer;
+}
+.tram-bell-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #ffe600;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: -7px;
+  border: 1.5px solid #222;
+}
+.tram-user-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #222;
+  font-weight: 600;
+  font-size: 1.1rem;
+  background: #fff;
+}
+.tram-username {
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+.tram-btn-nuevo {
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 7px;
+  font-size: 1.1em;
+  padding: 0.7em 2.2em;
+  font-weight: 500;
+  box-shadow: 2px 2px 0 #222;
+  transition: background 0.2s;
+  margin: 0;
+  position: static;
+  transform: none;
+}
+.tram-btn-nuevo:hover {
+  background: #f4f7fa;
+}
+.tram-filtros-box {
+  border: 2px solid #222;
+  border-radius: 6px;
+  background: #fff;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 2.2rem;
+}
+.tram-filtros-title {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 0.7rem;
+  border-bottom: 1px solid #888;
+}
+.tram-filtros-row {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.tram-filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 140px;
+}
+.tram-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.tram-checkbox-label {
+  font-size: 1em;
+}
+.tram-filtro-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-left: 2rem;
+  align-items: flex-end;
+}
+.tram-filtro-btns-inline {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  margin-left: 0;
+  align-items: flex-end;
+}
+.tram-btn {
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 4px;
+  padding: 0.4em 1.2em;
+  font-size: 1em;
+  cursor: pointer;
+  font-weight: 500;
+  box-shadow: 1px 1px 0 #222;
+  transition: background 0.2s;
+}
+.tram-btn:hover {
+  background: #f4f7fa;
+}
+.tram-btn-link {
+  background: none;
+  border: none;
+  color: #1a4fa3;
+  text-decoration: underline;
+  font-size: 1em;
+  cursor: pointer;
+  margin-right: 0.7em;
+  box-shadow: none;
+  padding: 0;
+}
+.tram-btn-descargar { color: #222; }
+.tram-btn-editar { color: #eab308; }
+.tram-btn-corregir { color: #dc2626; }
+.tram-table-section { margin-top: 1.5rem; }
+.tram-table-wrap { overflow-x: auto; }
+.tram-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.tram-table th, .tram-table td {
+  border: 1.5px solid #222;
+  padding: 0.7em 1em;
+  text-align: left;
+}
+.tram-table th {
+  background: #f4f7fa;
+  font-weight: 600;
+  font-size: 1.05em;
+}
+.tram-pagination {
+  margin-top: 1.2rem;
+  text-align: left;
+  font-size: 1.1em;
+}
+@media (max-width: 900px) {
+  .tram-main { padding: 1rem; }
+  .tram-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .tram-btn-nuevo { position: static; transform: none; margin-top: 1rem; }
+  .tram-filtros-row { flex-direction: column; gap: 1.2rem; }
+  .tram-filtro-btns { margin-left: 0; flex-direction: row; gap: 1rem; }
+}
