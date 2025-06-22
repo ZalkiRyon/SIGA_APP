@@ -1,13 +1,32 @@
-.tram-main {
+.tram-page {
+  display: flex;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.tram-main,
+.tram-main-nuevo {
   flex: 1;
   padding: 2.5rem 2.5rem 2rem 2.5rem;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
 }
+
 .tram-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.5rem;
+}
+.tram-header-nuevo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.2rem;
 }
 .tram-header-actions {
   display: flex;
@@ -21,13 +40,23 @@
   margin-bottom: 0.7rem;
 }
 .tram-title {
-  font-size: 2.5rem;
-  font-weight: 500;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2rem;
   border-bottom: 3px solid #222;
   padding-bottom: 0.2em;
   display: inline-block;
   width: max-content;
   margin-bottom: 0;
+}
+.tram-title-nuevo {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 .tram-userbar {
   display: flex;
@@ -179,10 +208,222 @@
   text-align: left;
   font-size: 1.1em;
 }
+/* Opciones de tipo de trámite */
+.tram-opciones-box {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tram-opcion-btn {
+  background: #f5f6fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 1.2rem;
+  padding: 2.2rem 2.8rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #222;
+  min-width: 220px;
+  min-height: 120px;
+  cursor: pointer;
+  transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  outline: none;
+  text-align: center;
+}
+
+.tram-opcion-btn.selected {
+  border: 2.5px solid #1e88e5;
+  background: #e3f0fd;
+  color: #1769aa;
+  box-shadow: 0 4px 16px 0 rgba(30,136,229,0.10);
+}
+
+.tram-opcion-btn:active {
+  background: #e3f0fd;
+}
+
+.tram-btn-siguiente {
+  background: #1e88e5;
+  color: #fff;
+  border: none;
+  border-radius: 1.2rem;
+  padding: 1.1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(30,136,229,0.08);
+  opacity: 1;
+}
+
+.tram-btn-siguiente:disabled {
+  background: #b3c6e0;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.tram-btn-siguiente:not(:disabled):hover {
+  background: #1769aa;
+  opacity: 0.93;
+}
+
+/* === NUEVO TRÁMITE VEHÍCULO TEMPORAL === */
+.veh-form {
+  margin-top: 1.2rem;
+  width: 100%;
+  max-width: 1200px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0 0 2.5rem 0;
+}
+.veh-title {
+  border-bottom: 3px solid #222;
+  padding-bottom: 0.2em;
+  display: inline-block;
+  width: max-content;
+  margin-bottom: 0.7rem;
+}
+.veh-datos-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.2rem;
+  margin-top: 1.2rem;
+}
+.veh-datos-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.2rem 2.2rem;
+  margin-bottom: 2.2rem;
+}
+.veh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.veh-field input[type="date"] {
+  background: #f4f7fa;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5em 0.7em;
+  font-size: 1em;
+  color: #222;
+  margin-top: 0.2em;
+}
+.veh-fecha-termino {
+  background: #e5e7eb !important;
+}
+.veh-docs {
+  margin-top: 2.5rem;
+}
+.veh-docs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem 2.2rem;
+}
+.veh-doc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.veh-doc-field input[type="file"] {
+  border: 1.5px solid #222;
+  border-radius: 6px;
+  padding: 0.5em 0.7em;
+  background: #fff;
+  font-size: 1em;
+}
+.veh-btn-descargar {
+  margin-top: 0.5em;
+  background: #fff;
+  border: 2px solid #1e88e5;
+  color: #1e88e5;
+  border-radius: 7px;
+  font-size: 1em;
+  padding: 0.4em 1.2em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.veh-btn-descargar:hover {
+  background: #e3f0fd;
+}
+.veh-info {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  margin-top: 1.2em;
+  font-size: 1.05em;
+  color: #222;
+}
+.veh-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #222;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+.veh-form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2.5rem;
+  gap: 2rem;
+}
+.veh-btn-atras, .veh-btn-enviar {
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 7px;
+  font-size: 1.1em;
+  padding: 0.7em 2.2em;
+  font-weight: 500;
+  box-shadow: 2px 2px 0 #222;
+  transition: background 0.2s;
+  min-width: 220px;
+}
+.veh-btn-enviar {
+  border: 2px solid #1e88e5;
+  color: #1e88e5;
+  box-shadow: 2px 2px 0 #1e88e5;
+}
+.veh-btn-atras:hover, .veh-btn-enviar:hover {
+  background: #f4f7fa;
+}
 @media (max-width: 900px) {
-  .tram-main { padding: 1rem; }
+  .tram-main, .tram-main-nuevo {
+    padding: 1rem;
+  }
+  .tram-page {
+    flex-direction: column;
+  }
   .tram-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .tram-btn-nuevo { position: static; transform: none; margin-top: 1rem; }
   .tram-filtros-row { flex-direction: column; gap: 1.2rem; }
   .tram-filtro-btns { margin-left: 0; flex-direction: row; gap: 1rem; }
+}
+@media (max-width: 700px) {
+  .tram-opciones-box {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .tram-opcion-btn {
+    min-width: 90vw;
+    min-height: 80px;
+    font-size: 1.1rem;
+    padding: 1.2rem 1.5rem;
+  }
+  .veh-datos-grid, .veh-docs-grid {
+    grid-template-columns: 1fr;
+  }
+  .veh-form-actions {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
 }

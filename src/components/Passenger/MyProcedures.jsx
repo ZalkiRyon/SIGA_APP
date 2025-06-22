@@ -1,45 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../Shared/Sidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { getTramitesVehiculo, getTramitesMenores } from '../../services/api';
 import '../../styles/global.css';
 import './MyProcedures.css'; // Asegúrate de crear este archivo para los estilos específicos
-
-const MOCK_DATA = [
-  {
-    id: '#TR-5872',
-    fechaInicio: '18/05/2025',
-    fechaTermino: '18/05/2025',
-    tipo: 'Vehículo temporal',
-    estado: 'Aprobado',
-    acciones: ['Ver', 'Descargar'],
-  },
-  {
-    id: '#TR-5910',
-    fechaInicio: '17/05/2025',
-    fechaTermino: '---',
-    tipo: 'Declaración SAG',
-    estado: 'En revisión',
-    acciones: ['Ver', 'Editar'],
-  },
-  {
-    id: '#TR-6011',
-    fechaInicio: '05/05/2025',
-    fechaTermino: '---',
-    tipo: 'Documentación Menor',
-    estado: 'Rechazado',
-    acciones: ['Ver', 'Corregir'],
-  },
-];
 
 const ESTADOS = ['Aprobado', 'En revisión', 'Rechazado'];
 const TIPOS = ['Vehículos', 'Mascotas o alimentos', 'Menores de edad'];
 
 export default function MyProcedures() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [filtroInicio, setFiltroInicio] = useState('');
   const [filtroTermino, setFiltroTermino] = useState('');
   const [filtroEstados, setFiltroEstados] = useState([]);
   const [filtroTipos, setFiltroTipos] = useState([]);
+  const [tramites, setTramites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchTramites() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [vehiculo, menores] = await Promise.all([
+          getTramitesVehiculo(user?.id),
+          getTramitesMenores(user?.id)
+        ]);
+        // Unificamos ambos tipos para la tabla
+        const all = [
+          ...vehiculo.map(t => ({
+            ...t,
+            fechaInicio: t.fechaInicio,
+            fechaTermino: t.fechaTermino,
+            tipo: 'Vehículo temporal',
+          })),
+          ...menores.map(t => ({
+            ...t,
+            fechaInicio: t.menorNacimiento,
+            fechaTermino: '',
+            tipo: 'Menores de edad',
+          }))
+        ];
+        setTramites(all);
+      } catch (err) {
+        setError(err.message);
+      }
+      setLoading(false);
+    }
+    if (user?.id) fetchTramites();
+  }, [user]);
 
   const handleEstado = (estado) => {
     setFiltroEstados((prev) =>
@@ -57,15 +69,12 @@ export default function MyProcedures() {
     setFiltroEstados([]);
     setFiltroTipos([]);
   };
-  // Filtro visual (mock)
-  const filtered = MOCK_DATA.filter((p) => {
+  // Filtros sobre tramites reales
+  const filtered = tramites.filter((p) => {
     const matchEstado = filtroEstados.length === 0 || filtroEstados.includes(p.estado);
-    const matchTipo = filtroTipos.length === 0 ||
-      (filtroTipos.includes('Vehículos') && p.tipo.toLowerCase().includes('veh')) ||
-      (filtroTipos.includes('Mascotas o alimentos') && (p.tipo.toLowerCase().includes('sag') || p.tipo.toLowerCase().includes('mascota') || p.tipo.toLowerCase().includes('alimento')) ) ||
-      (filtroTipos.includes('Menores de edad') && p.tipo.toLowerCase().includes('menor'));
-    const matchInicio = !filtroInicio || p.fechaInicio.split('/').reverse().join('-') >= filtroInicio;
-    const matchTermino = !filtroTermino || (p.fechaTermino !== '---' && p.fechaTermino.split('/').reverse().join('-') <= filtroTermino);
+    const matchTipo = filtroTipos.length === 0 || filtroTipos.includes(p.tipo);
+    const matchInicio = !filtroInicio || (p.fechaInicio && p.fechaInicio >= filtroInicio);
+    const matchTermino = !filtroTermino || (p.fechaTermino && p.fechaTermino <= filtroTermino);
     return matchEstado && matchTipo && matchInicio && matchTermino;
   });
 
@@ -76,7 +85,12 @@ export default function MyProcedures() {
         <header className="tram-header">
           <h1 className="tram-title">Mis trámites</h1>
           <div className="tram-header-actions">
-            <button className="tram-btn-nuevo">Crear nuevo trámite</button>
+            <button
+              className="tram-btn tram-btn-nuevo"
+              onClick={() => navigate('/passenger/tramite/nuevo')}
+            >
+              Crear nuevo trámite
+            </button>
             <span className="tram-bell" title="Notificaciones">🔔</span>
             <span className="tram-username">{user?.nombre || 'Usuario'}</span>
           </div>
@@ -119,6 +133,11 @@ export default function MyProcedures() {
         </section>
         <section className="tram-table-section">
           <div className="tram-table-wrap">
+            {loading ? (
+              <div style={{textAlign: 'center', color: '#888', padding: '2em'}}>Cargando trámites...</div>
+            ) : error ? (
+              <div style={{textAlign: 'center', color: 'red', padding: '2em'}}>{error}</div>
+            ) : (
             <table className="tram-table">
               <thead>
                 <tr>
@@ -142,19 +161,19 @@ export default function MyProcedures() {
                     <tr key={p.id}>
                       <td>{p.id}</td>
                       <td>{p.fechaInicio}</td>
-                      <td>{p.fechaTermino}</td>
+                      <td>{p.fechaTermino || '---'}</td>
                       <td>{p.tipo}</td>
                       <td>{p.estado}</td>
                       <td>
-                        {p.acciones.map((a) => (
-                          <button key={a} className={`tram-btn-link tram-btn-${a.toLowerCase()}`}>{a}</button>
-                        ))}
+                        <button className="tram-btn-link tram-btn-ver">Ver</button>
+                        <button className="tram-btn-link tram-btn-descargar">Descargar</button>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+            )}
           </div>
         </section>
         <footer className="tram-pagination">

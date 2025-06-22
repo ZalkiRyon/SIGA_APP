@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 // const bcrypt = require('bcrypt'); // No se usará para esta prueba
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -15,6 +17,18 @@ const dbConfig = {
   password: '', // Cambia si tienes contraseña
   database: 'siga_app',
 };
+
+// Configuración de almacenamiento para archivos de trámites
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
+  }
+});
+const upload = multer({ storage });
 
 // Ruta de autenticación
 app.post('/api/login', async (req, res) => {
@@ -83,6 +97,194 @@ app.post('/api/register', async (req, res) => {
     );
     await conn.end();
     res.json({ ok: true, message: 'Usuario registrado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para guardar trámite de vehículo temporal
+app.post('/api/tramite/vehiculo', upload.fields([
+  { name: 'cedula', maxCount: 1 },
+  { name: 'licencia', maxCount: 1 },
+  { name: 'revision', maxCount: 1 },
+  { name: 'salida', maxCount: 1 },
+  { name: 'autorizacion', maxCount: 1 },
+  { name: 'certificado', maxCount: 1 },
+  { name: 'seguro', maxCount: 1 },
+]), async (req, res) => {
+  try {
+    const {
+      patente, marca, modelo, anio, color, fechaInicio, fechaTermino, userId
+    } = req.body;
+    if (!patente || !marca || !modelo || !anio || !color || !fechaInicio || !fechaTermino || !userId) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
+    const files = req.files;
+    if (!files.cedula || !files.licencia || !files.revision || !files.salida || !files.certificado || !files.seguro) {
+      return res.status(400).json({ error: 'Faltan archivos obligatorios' });
+    }
+    const conn = await mysql.createConnection(dbConfig);
+    await conn.execute(
+      `INSERT INTO tramites_vehiculo
+        (user_id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino,
+         archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, patente, marca, modelo, anio, color, fechaInicio, fechaTermino,
+        files.cedula[0].filename,
+        files.licencia[0].filename,
+        files.revision[0].filename,
+        files.salida[0].filename,
+        files.autorizacion ? files.autorizacion[0].filename : null,
+        files.certificado[0].filename,
+        files.seguro[0].filename
+      ]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Trámite guardado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Obtener trámites de vehículo temporal por usuario
+app.get('/api/tramites/vehiculo', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'Falta userId' });
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute(
+      `SELECT id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino, estado, fecha_creacion
+       FROM tramites_vehiculo WHERE user_id = ? ORDER BY fecha_creacion DESC`,
+      [userId]
+    );
+    await conn.end();
+    // Formatear fechas y campos para frontend
+    const data = rows.map(row => ({
+      id: row.id,
+      fechaInicio: row.fecha_inicio ? row.fecha_inicio.toISOString().split('T')[0] : '',
+      fechaTermino: row.fecha_termino ? row.fecha_termino.toISOString().split('T')[0] : '',
+      tipo: 'Vehículo temporal',
+      estado: row.estado,
+    }));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para guardar trámite de menores de edad
+app.post('/api/tramite/menores', upload.fields([
+  { name: 'docIdentidad', maxCount: 1 },
+  { name: 'docAutorizacion', maxCount: 1 },
+]), async (req, res) => {
+  try {
+    const {
+      menorNombres, menorApellidos, menorRut, menorNacimiento,
+      acompNombres, acompApellidos, acompRut, userId
+    } = req.body;
+    if (!menorNombres || !menorApellidos || !menorRut || !menorNacimiento || !acompNombres || !acompApellidos || !acompRut || !userId) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
+    const files = req.files;
+    if (!files.docIdentidad || !files.docAutorizacion) {
+      return res.status(400).json({ error: 'Faltan archivos obligatorios' });
+    }
+    const conn = await mysql.createConnection(dbConfig);
+    await conn.execute(
+      `INSERT INTO tramites_menores
+        (user_id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento,
+         acomp_nombres, acomp_apellidos, acomp_rut, archivo_identidad, archivo_autorizacion)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, menorNombres, menorApellidos, menorRut, menorNacimiento,
+        acompNombres, acompApellidos, acompRut,
+        files.docIdentidad[0].filename,
+        files.docAutorizacion[0].filename
+      ]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Trámite de menores guardado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para obtener trámites de menores de edad por usuario
+app.get('/api/tramites/menores', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'Falta userId' });
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute(
+      `SELECT id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento, acomp_nombres, acomp_apellidos, acomp_rut, estado, fecha_creacion
+       FROM tramites_menores WHERE user_id = ? ORDER BY fecha_creacion DESC`,
+      [userId]
+    );
+    await conn.end();
+    const data = rows.map(row => ({
+      id: row.id,
+      menorNombres: row.menor_nombres,
+      menorApellidos: row.menor_apellidos,
+      menorRut: row.menor_rut,
+      menorNacimiento: row.menor_nacimiento ? row.menor_nacimiento.toISOString().split('T')[0] : '',
+      acompNombres: row.acomp_nombres,
+      acompApellidos: row.acomp_apellidos,
+      acompRut: row.acomp_rut,
+      tipo: 'Menores de edad',
+      estado: row.estado,
+    }));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para guardar trámite de alimentos/mascotas (Declaración SAG)
+app.post('/api/tramite/alimentos', async (req, res) => {
+  try {
+    const { tipo, cantidad, transporte, descripcion, userId } = req.body;
+    if (!tipo || !cantidad || !transporte || !descripcion || !userId) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
+    const conn = await mysql.createConnection(dbConfig);
+    await conn.execute(
+      `INSERT INTO tramites_alimentos
+        (user_id, tipo, cantidad, transporte, descripcion)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, tipo, cantidad, transporte, descripcion]
+    );
+    await conn.end();
+    res.json({ ok: true, message: 'Trámite de alimentos/mascotas guardado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
+// Endpoint para obtener trámites de alimentos/mascotas por usuario
+app.get('/api/tramites/alimentos', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'Falta userId' });
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute(
+      `SELECT id, tipo, cantidad, transporte, descripcion, estado, fecha_creacion
+       FROM tramites_alimentos WHERE user_id = ? ORDER BY fecha_creacion DESC`,
+      [userId]
+    );
+    await conn.end();
+    const data = rows.map(row => ({
+      id: row.id,
+      tipo: row.tipo === 'vegetal' ? 'Mascotas o alimentos' : (row.tipo === 'animal' ? 'Mascotas o alimentos' : 'Mascotas o alimentos'),
+      detalleTipo: row.tipo,
+      cantidad: row.cantidad,
+      transporte: row.transporte,
+      descripcion: row.descripcion,
+      fechaInicio: row.fecha_creacion ? row.fecha_creacion.toISOString().split('T')[0] : '',
+      fechaTermino: '',
+      estado: row.estado,
+    }));
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
