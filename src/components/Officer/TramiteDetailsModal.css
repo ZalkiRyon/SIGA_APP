@@ -1,0 +1,176 @@
+/* Estilos para el modal de detalles de trámite */
+
+.tramite-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.tramite-modal-content {
+  background: white;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tramite-modal-header {
+  padding: 1rem 1.5rem;
+  background-color: #0056b3;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ccc;
+}
+
+.tramite-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.tramite-modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tramite-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 70px);
+}
+
+.tramite-info-section {
+  margin-bottom: 2rem;
+}
+
+.tramite-info-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.tramite-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  font-size: 1.05rem;
+}
+
+.status-revision {
+  color: #0056b3;
+}
+
+.status-rechazado {
+  color: #d32f2f;
+}
+
+.status-aprobado {
+  color: #388e3c;
+}
+
+.tramite-docs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.doc-item {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 4px;
+}
+
+.doc-icon {
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
+}
+
+.doc-name {
+  flex: 1;
+}
+
+.doc-button {
+  background-color: #0056b3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.tramite-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn-aprobar {
+  background-color: #388e3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 2rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-rechazar {
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 2rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .tramite-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tramite-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .btn-aprobar, .btn-rechazar {
+    width: 100%;
+  }
+}

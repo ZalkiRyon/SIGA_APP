@@ -562,3 +562,225 @@ export async function updateUserSettings(settings) {
     return { success: true, message: 'Configuración actualizada correctamente' };
   }
 }
+
+// Función para obtener trámites para validación (para funcionarios aduaneros)
+export async function getTramitesValidacion(filters = {}) {
+  try {
+    const token = localStorage.getItem('token');
+    const queryParams = new URLSearchParams();
+    
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.tipo) queryParams.append('tipo', filters.tipo);
+    if (filters.fechaInicio) queryParams.append('fechaInicio', filters.fechaInicio);
+    if (filters.estado) queryParams.append('estado', filters.estado);
+    if (filters.page) queryParams.append('page', filters.page);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+    
+    const url = `http://localhost:4000/api/tramites/validacion?${queryParams.toString()}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+        throw new Error(errorData.error || `Error al obtener trámites (${response.status})`);
+      } catch (jsonError) {
+        throw new Error(`Error al obtener trámites: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching tramites for validation:', error);    // Para desarrollo/demostración, retornar datos de ejemplo si falla la API
+    return {
+      tramites: [
+        {
+          id: 'TR-5872',
+          fechaInicio: '18/05/2025',
+          tipo: 'Vehículo temporal',
+          estado: 'En revisión',
+          detalles: {
+            patente: 'XYZ789',
+            marca: 'Nissan',
+            modelo: 'Sentra'
+          }
+        },
+        {
+          id: 'TR-5910',
+          fechaInicio: '17/05/2025',
+          tipo: 'Declaración SAG',
+          estado: 'En revisión',
+          detalles: {
+            tipo: 'vegetal',
+            cantidad: 3,
+            descripcion: 'Frutas frescas'
+          }
+        },
+        {
+          id: 'TR-6011',
+          fechaInicio: '05/05/2025',
+          tipo: 'Documentación Menor',
+          estado: 'Rechazado',
+          detalles: {
+            menor: 'Lucas Muñoz Vega',
+            acompanante: 'Elena Vega López'
+          }
+        }
+      ],
+      pagination: {
+        totalItems: 3,
+        totalPages: 1,
+        currentPage: 1,
+        itemsPerPage: 10
+      }
+    };
+  }
+}
+
+// Función para obtener detalles de un trámite específico
+export async function getTramiteDetalles(tramiteId) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:4000/api/tramites/${tramiteId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+        throw new Error(errorData.error || `Error al obtener detalles del trámite (${response.status})`);
+      } catch (jsonError) {
+        throw new Error(`Error al obtener detalles del trámite: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching tramite details:', error);
+    
+    // Retornar datos de ejemplo para desarrollo
+    if (tramiteId === 'TR-5872') {
+      return {
+        id: 'TR-5872',
+        customId: 'VEH-0003',
+        fechaInicio: '18/05/2025',
+        fechaCreacion: '15/05/2025',
+        tipo: 'Vehículo temporal',
+        estado: 'En revisión',
+        solicitante: {
+          nombre: 'Juan Pérez',
+          rut: '10.111.222-3',
+          email: 'juan.perez@gmail.com',
+          telefono: '956789123'
+        },
+        detalles: {
+          patente: 'BCDF12',
+          marca: 'Honda',
+          modelo: 'Civic',
+          anio: '2023',
+          color: 'Negro',
+          fechaInicio: '25/06/2025',
+          fechaTermino: '25/09/2025'
+        },
+        documentos: [
+          { nombre: 'Cédula de identidad', url: '/uploads/cedula_jp.pdf' },
+          { nombre: 'Licencia de conducir', url: '/uploads/licencia_jp.pdf' },
+          { nombre: 'Revisión técnica', url: '/uploads/revision_jp.pdf' },
+          { nombre: 'Permiso de salida', url: '/uploads/salida_jp.pdf' },
+          { nombre: 'Certificado de registro', url: '/uploads/certificado_jp.pdf' },
+          { nombre: 'Seguro vehicular', url: '/uploads/seguro_jp.pdf' }
+        ]
+      };
+    } else if (tramiteId === 'TR-5910') {
+      return {
+        id: 'TR-5910',
+        customId: 'VEG-0003',
+        fechaInicio: '17/05/2025',
+        fechaCreacion: '16/05/2025',
+        tipo: 'Declaración SAG',
+        estado: 'En revisión',
+        solicitante: {
+          nombre: 'Roberto Muñoz',
+          rut: '12.333.444-5',
+          email: 'roberto.muñoz@outlook.com',
+          telefono: '978912345'
+        },
+        detalles: {
+          tipo: 'vegetal',
+          cantidad: 4,
+          transporte: 'Auto particular',
+          descripcion: 'Frutas secas y frutos secos'
+        }
+      };
+    } else if (tramiteId === 'TR-6011') {
+      return {
+        id: 'TR-6011',
+        customId: 'MEN-0004',
+        fechaInicio: '05/05/2025',
+        fechaCreacion: '04/05/2025',
+        tipo: 'Documentación Menor',
+        estado: 'Rechazado',
+        motivoRechazo: 'Documentación incompleta. Falta certificado de nacimiento.',
+        solicitante: {
+          nombre: 'Roberto Muñoz',
+          rut: '12.333.444-5',
+          email: 'roberto.muñoz@outlook.com',
+          telefono: '978912345'
+        },
+        detalles: {
+          menorNombre: 'Lucas',
+          menorApellidos: 'Muñoz Vega',
+          menorRut: '26.555.666-7',
+          menorNacimiento: '08/11/2014',
+          acompNombre: 'Elena',
+          acompApellidos: 'Vega López',
+          acompRut: '16.777.888-9'
+        },
+        documentos: [
+          { nombre: 'Documento de identidad', url: '/uploads/identidad_rm.pdf' },
+          { nombre: 'Autorización de viaje', url: '/uploads/autorizacion_rm.pdf' }
+        ]
+      };
+    } else {
+      throw new Error('Trámite no encontrado');
+    }
+  }
+}
+
+// Función para aprobar o rechazar un trámite
+export async function aprobarRechazarTramite(tramiteId, decision, motivoRechazo = null) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:4000/api/tramites/${tramiteId}/${decision}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ motivoRechazo })
+    });
+    
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+        throw new Error(errorData.error || `Error al ${decision === 'aprobar' ? 'aprobar' : 'rechazar'} trámite (${response.status})`);
+      } catch (jsonError) {
+        throw new Error(`Error al ${decision === 'aprobar' ? 'aprobar' : 'rechazar'} trámite: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Error ${decision === 'aprobar' ? 'aprobando' : 'rechazando'} tramite:`, error);
+    throw error;
+  }
+}
