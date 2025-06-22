@@ -1,0 +1,150 @@
+/* Estilos para la página de alertas */
+
+.alerts-container {
+  display: flex;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.alerts-content {
+  flex: 1;
+  padding: 2rem;
+}
+
+.alerts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  border-bottom: 2px solid #222;
+  padding-bottom: 0.3rem;
+  margin-top: 0;
+  margin-right: 2rem;
+}
+
+.notification-badge {
+  position: relative;
+  margin-right: 1rem;
+}
+
+.badge-icon {
+  width: 10px;
+  height: 10px;
+  background: #f00;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: #e0e0e0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+  font-weight: bold;
+}
+
+.filters-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.filter-button {
+  padding: 0.5rem 2rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.filter-button.active {
+  background: #0056b3;
+  color: white;
+  border-color: #0056b3;
+}
+
+.alert-item {
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.alert-critical {
+  background-color: #f8c6c6;
+}
+
+.alert-warning {
+  background-color: #ffecd0;
+}
+
+.alert-header {
+  margin-bottom: 0.75rem;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.alert-id {
+  font-weight: bold;
+}
+
+.alert-details {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.alert-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+}
+
+.alert-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-label {
+  font-weight: 600;
+}
+
+.alert-value {
+  font-weight: normal;
+}
+
+.alert-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.alert-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.alert-button:hover {
+  background: #f0f0f0;
+}
