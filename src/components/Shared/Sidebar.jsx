@@ -19,15 +19,15 @@ const sidebarItems = {
   passenger: [
     { icon: '🏠', label: 'Inicio', path: '/passenger' },
     { icon: '📄', label: 'Mis trámites', path: '/passenger/mis-tramites' },
-    { icon: '❓', label: 'Ayuda', path: '/passenger/ayuda' },
     { icon: '📚', label: 'Documentación', path: '/passenger/documentacion' },
+    { icon: '❓', label: 'Ayuda', path: '/passenger/ayuda' },
   ],
 };
 
-export default function Sidebar({ role = 'officer', onLogout }) {
+export default function Sidebar({ role = 'passenger', onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const items = sidebarItems[role] || sidebarItems['officer'];
+  const items = sidebarItems[role] || sidebarItems['passenger'];
   return (
     <aside style={{
       inlineSize: 220,
