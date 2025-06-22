@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../Shared/Sidebar';
 import { useAuth } from '../../context/AuthContext';
+import { crearTramiteAlimentos } from '../../services/api';
 import '../../styles/global.css';
 import './MyProcedures.css';
 
@@ -36,12 +37,15 @@ export default function NewFoodPetProcedure() {
     e.preventDefault();
     setEnviando(true);
     setMensaje(null);
-    // Aquí irá la lógica de envío real
-    setTimeout(() => {
+    try {
+      await crearTramiteAlimentos(form, user?.id);
       setMensaje('Trámite enviado exitosamente.');
-      setEnviando(false);
       setForm({ tipo: '', cantidad: 1, transporte: '', descripcion: '' });
-    }, 1200);
+    } catch (err) {
+      setMensaje(err.message);
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (

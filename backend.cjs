@@ -154,7 +154,8 @@ app.get('/api/tramites/vehiculo', async (req, res) => {
   try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute(
-      `SELECT id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino, estado, fecha_creacion
+      `SELECT id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino, estado, fecha_creacion,
+        archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro
        FROM tramites_vehiculo WHERE user_id = ? ORDER BY fecha_creacion DESC`,
       [userId]
     );
@@ -166,6 +167,15 @@ app.get('/api/tramites/vehiculo', async (req, res) => {
       fechaTermino: row.fecha_termino ? row.fecha_termino.toISOString().split('T')[0] : '',
       tipo: 'Vehículo temporal',
       estado: row.estado,
+      archivos: {
+        cedula: row.archivo_cedula,
+        licencia: row.archivo_licencia,
+        revision: row.archivo_revision,
+        salida: row.archivo_salida,
+        autorizacion: row.archivo_autorizacion,
+        certificado: row.archivo_certificado,
+        seguro: row.archivo_seguro
+      }
     }));
     res.json(data);
   } catch (err) {
@@ -217,7 +227,7 @@ app.get('/api/tramites/menores', async (req, res) => {
   try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute(
-      `SELECT id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento, acomp_nombres, acomp_apellidos, acomp_rut, estado, fecha_creacion
+      `SELECT id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento, acomp_nombres, acomp_apellidos, acomp_rut, estado, fecha_creacion, archivo_identidad, archivo_autorizacion
        FROM tramites_menores WHERE user_id = ? ORDER BY fecha_creacion DESC`,
       [userId]
     );
@@ -233,6 +243,10 @@ app.get('/api/tramites/menores', async (req, res) => {
       acompRut: row.acomp_rut,
       tipo: 'Menores de edad',
       estado: row.estado,
+      archivos: {
+        identidad: row.archivo_identidad,
+        autorizacion: row.archivo_autorizacion
+      }
     }));
     res.json(data);
   } catch (err) {
@@ -288,6 +302,26 @@ app.get('/api/tramites/alimentos', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
+});
+
+// Endpoint seguro para servir archivos adjuntos de trámites
+app.get('/api/archivo/:tipo/:filename', async (req, res) => {
+  const { tipo, filename } = req.params;
+  // Validar tipo permitido
+  const allowedTypes = ['vehiculo', 'menores'];
+  if (!allowedTypes.includes(tipo)) {
+    return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+  }
+  // Sanitizar filename
+  if (!/^[\w\-\.]+$/.test(filename)) {
+    return res.status(400).json({ error: 'Nombre de archivo inválido' });
+  }
+  const filePath = path.join(__dirname, 'uploads', filename);
+  res.sendFile(filePath, err => {
+    if (err) {
+      res.status(404).json({ error: 'Archivo no encontrado' });
+    }
+  });
 });
 
 // Iniciar servidor

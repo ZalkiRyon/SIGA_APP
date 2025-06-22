@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../Shared/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { getTramitesVehiculo, getTramitesMenores } from '../../services/api';
+import { getTramitesVehiculo, getTramitesMenores, getTramitesAlimentos } from '../../services/api';
 import '../../styles/global.css';
 import './MyProcedures.css'; // Asegúrate de crear este archivo para los estilos específicos
 
@@ -25,23 +25,30 @@ export default function MyProcedures() {
       setLoading(true);
       setError(null);
       try {
-        const [vehiculo, menores] = await Promise.all([
+        const [vehiculo, menores, alimentos] = await Promise.all([
           getTramitesVehiculo(user?.id),
-          getTramitesMenores(user?.id)
+          getTramitesMenores(user?.id),
+          getTramitesAlimentos(user?.id)
         ]);
-        // Unificamos ambos tipos para la tabla
+        // Unificamos todos los tipos para la tabla
         const all = [
           ...vehiculo.map(t => ({
             ...t,
             fechaInicio: t.fechaInicio,
             fechaTermino: t.fechaTermino,
-            tipo: 'Vehículo temporal',
+            tipo: 'Vehículos',
           })),
           ...menores.map(t => ({
             ...t,
             fechaInicio: t.menorNacimiento,
             fechaTermino: '',
             tipo: 'Menores de edad',
+          })),
+          ...alimentos.map(t => ({
+            ...t,
+            tipo: 'Mascotas o alimentos',
+            fechaInicio: t.fechaInicio || (t.fecha_creacion ? t.fecha_creacion.split('T')[0] : ''),
+            fechaTermino: '',
           }))
         ];
         setTramites(all);
@@ -77,6 +84,87 @@ export default function MyProcedures() {
     const matchTermino = !filtroTermino || (p.fechaTermino && p.fechaTermino <= filtroTermino);
     return matchEstado && matchTipo && matchInicio && matchTermino;
   });
+
+  function ArchivoLinks({ tipo, archivos }) {
+    const [error, setError] = React.useState(null);
+    if (!archivos) return null;
+    const handleClick = async (e, url) => {
+      setError(null);
+      try {
+        // Intentar abrir en nueva pestaña, pero si hay error de red, mostrar feedback
+        const resp = await fetch(url, { method: 'HEAD' });
+        if (!resp.ok) throw new Error('Archivo no disponible');
+        window.open(url, '_blank', 'noopener');
+      } catch (err) {
+        setError('No se pudo abrir o descargar el archivo. Intenta más tarde.');
+        e.preventDefault();
+      }
+    };
+    if (tipo === 'Vehículos' || tipo === 'Vehículo temporal') {
+      const labels = {
+        cedula: 'Cédula',
+        licencia: 'Licencia',
+        revision: 'Revisión técnica',
+        salida: 'Formulario salida',
+        autorizacion: 'Autorización',
+        certificado: 'Certificado inscripción',
+        seguro: 'Seguro obligatorio',
+      };
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {Object.entries(archivos).map(([k, v]) => v && (
+              <span key={k}>
+                <a className="tram-btn-link" href={`http://localhost:4000/api/archivo/vehiculo/${v}`} target="_blank" rel="noopener noreferrer" onClick={e => handleClick(e, `http://localhost:4000/api/archivo/vehiculo/${v}`)}>{labels[k] || k}</a>
+              </span>
+            ))}
+          </div>
+          {error && <div style={{ color: 'red', fontSize: '0.95em', marginTop: 2 }}>{error}</div>}
+        </div>
+      );
+    }
+    if (tipo === 'Menores de edad') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {archivos.identidad && (
+              <a className="tram-btn-link" href={`http://localhost:4000/api/archivo/menores/${archivos.identidad}`} target="_blank" rel="noopener noreferrer" onClick={e => handleClick(e, `http://localhost:4000/api/archivo/menores/${archivos.identidad}`)}>Identidad</a>
+            )}
+            {archivos.autorizacion && (
+              <a className="tram-btn-link" href={`http://localhost:4000/api/archivo/menores/${archivos.autorizacion}`} target="_blank" rel="noopener noreferrer" onClick={e => handleClick(e, `http://localhost:4000/api/archivo/menores/${archivos.autorizacion}`)}>Autorización</a>
+            )}
+          </div>
+          {error && <div style={{ color: 'red', fontSize: '0.95em', marginTop: 2 }}>{error}</div>}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  function AccionTramite({ tramite }) {
+    const handleEditar = () => {
+      let ruta = '';
+      if (tramite.tipo === 'Vehículos') ruta = '/passenger/tramite/vehiculo/edit';
+      else if (tramite.tipo === 'Menores de edad') ruta = '/passenger/tramite/menores';
+      else if (tramite.tipo === 'Mascotas o alimentos') ruta = '/passenger/tramite/alimentos';
+      navigate(ruta, { state: { tramite, modo: 'editar' } });
+    };
+    if (tramite.estado === 'Aprobado') {
+      if (tramite.archivos && Object.values(tramite.archivos).some(Boolean)) {
+        return (
+          <button className="tram-btn tram-btn-descargar" onClick={() => window.open(Object.values(tramite.archivos).find(Boolean) ? `http://localhost:4000/api/archivo/${tramite.tipo === 'Vehículos' ? 'vehiculo' : tramite.tipo === 'Menores de edad' ? 'menores' : 'alimentos'}/${Object.values(tramite.archivos).find(Boolean)}` : '#', '_blank', 'noopener')}>Descargar</button>
+        );
+      }
+      return <span style={{ color: '#888' }}>Sin archivos</span>;
+    }
+    if (tramite.estado === 'En revisión') {
+      return <button className="tram-btn tram-btn-editar" onClick={handleEditar}>Editar</button>;
+    }
+    if (tramite.estado === 'Rechazado') {
+      return <button className="tram-btn tram-btn-corregir" onClick={() => alert('Funcionalidad de corrección próximamente')}>Corregir</button>;
+    }
+    return null;
+  }
 
   return (
     <div className="tram-page" style={{display: 'flex', blockSize: '100vh', background: '#fff'}}>
@@ -165,8 +253,8 @@ export default function MyProcedures() {
                       <td>{p.tipo}</td>
                       <td>{p.estado}</td>
                       <td>
-                        <button className="tram-btn-link tram-btn-ver">Ver</button>
-                        <button className="tram-btn-link tram-btn-descargar">Descargar</button>
+                        <ArchivoLinks tipo={p.tipo} archivos={p.archivos} />
+                        <AccionTramite tramite={p} />
                       </td>
                     </tr>
                   ))

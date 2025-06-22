@@ -119,3 +119,42 @@ export async function getTramitesMenores(userId) {
   }
   return data;
 }
+
+export async function crearTramiteAlimentos(form, userId) {
+  const body = {
+    tipo: form.tipo,
+    cantidad: form.cantidad,
+    transporte: form.transporte,
+    descripcion: form.descripcion,
+    userId
+  };
+  const response = await fetch('http://localhost:4000/api/tramite/alimentos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('No se pudo conectar con el servidor. Intenta más tarde.');
+  }
+  if (!response.ok) {
+    throw new Error(data.error || 'Error al guardar trámite');
+  }
+  return data;
+}
+
+export async function getTramitesAlimentos(userId) {
+  const response = await fetch(`http://localhost:4000/api/tramites/alimentos?userId=${userId}`);
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('No se pudo conectar con el servidor. Intenta más tarde.');
+  }
+  if (!response.ok) {
+    throw new Error(data.error || 'Error al obtener trámites');
+  }
+  return data;
+}
