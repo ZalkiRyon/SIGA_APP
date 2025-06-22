@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './Login.css';
 import { login as loginApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // Componente de Login para autenticación de usuarios
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,15 +81,15 @@ export default function Login() {
             />
           </div>
 
-          {error && <div style={{ color: 'red', marginBottom: '0.7rem', textAlign: 'center' }}>{error}</div>}
+          {error && <div style={{ color: 'red', marginBlockEnd: '0.7rem', textAlign: 'center' }}>{error}</div>}
 
-          <a href="#" className="forgot-link">¿Olvidaste tu contraseña?</a>
+          <a href="#" className="forgot-link" onClick={e => { e.preventDefault(); navigate('/forgot-password'); }}>¿Olvidaste tu contraseña?</a>
 
           <button type="submit" className="btn-main" disabled={loading}>{loading ? 'Ingresando...' : 'Ingresar'}</button>
           <button type="button" className="btn-secondary" disabled={loading}>Ingresar con clave única</button>
         </form>
         <div className="register-link">
-          ¿No tienes cuenta? <a href="#">Regístrate aquí.</a>
+          ¿No tienes cuenta? <a href="#" onClick={e => { e.preventDefault(); navigate('/register'); }}>Regístrate aquí.</a>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { Routes as Switch, Route, Navigate } from 'react-router-dom';
 import Login from '../components/Auth/Login';
+import Register from '../components/Auth/Register';
+import ForgotPassword from '../components/Auth/ForgotPassword';
 import AdminRoutes from './adminRoutes';
 import OfficerRoutes from './officerRoutes';
 import PassengerRoutes from './passengerRoutes';
@@ -10,6 +12,8 @@ export default function Routes({ tipo, user }) {
     return (
       <Switch>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Switch>
     );

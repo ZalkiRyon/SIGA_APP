@@ -42,6 +42,25 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Recuperar contraseña (simulado)
+app.post('/api/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Falta el correo' });
+  try {
+    const conn = await mysql.createConnection(dbConfig);
+    const [rows] = await conn.execute('SELECT * FROM users WHERE email = ?', [email]);
+    await conn.end();
+    if (rows.length === 0) {
+      // Correo no existe
+      return res.status(404).json({ error: 'No existe correo asociado en nuestros registros' });
+    }
+    // Aquí normalmente se enviaría un correo real
+    return res.json({ ok: true, message: 'Instrucciones para recuperar la contraseña enviadas exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en el servidor', details: err.message });
+  }
+});
+
 // Iniciar servidor
 const PORT = 4000;
 app.listen(PORT, () => {
