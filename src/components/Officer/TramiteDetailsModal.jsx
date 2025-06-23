@@ -1,14 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { aprobarRechazarTramite } from '../../services/api';
 import './TramiteDetailsModal.css';
 
-export default function TramiteDetailsModal({ tramite, onClose }) {
+export default function TramiteDetailsModal({ tramite, onClose, onTramiteUpdated }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
+
   if (!tramite) return null;
+
+  const handleAprobar = async () => {
+    if (isProcessing) return;
+    
+    try {
+      setIsProcessing(true);
+      setError('');
+      
+      await aprobarRechazarTramite(tramite.id, 'aprobar');
+      
+      // Notificar al componente padre que el trámite fue actualizado
+      if (onTramiteUpdated) {
+        onTramiteUpdated();
+      }
+      
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Error al aprobar el trámite');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRechazar = async () => {
+    if (isProcessing) return;
+    
+    const motivo = prompt('Ingrese el motivo del rechazo:');
+    if (!motivo || motivo.trim() === '') {
+      setError('Debe ingresar un motivo para rechazar el trámite');
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      setError('');
+      
+      await aprobarRechazarTramite(tramite.id, 'rechazar', motivo.trim());
+      
+      // Notificar al componente padre que el trámite fue actualizado
+      if (onTramiteUpdated) {
+        onTramiteUpdated();
+      }
+      
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Error al rechazar el trámite');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   
   return (
     <div className="tramite-modal-overlay" onClick={onClose}>
-      <div className="tramite-modal-content" onClick={e => e.stopPropagation()}>
-        <div className="tramite-modal-header">
-          <h2>Detalles del Trámite: {tramite.id}</h2>
+      <div className="tramite-modal-content" onClick={e => e.stopPropagation()}>        <div className="tramite-modal-header">
+          <h2>Detalles del Trámite: {tramite.customId || tramite.id}</h2>
           <button className="tramite-modal-close" onClick={onClose}>×</button>
         </div>
         
@@ -99,12 +152,28 @@ export default function TramiteDetailsModal({ tramite, onClose }) {
                 ))}
               </div>
             </div>
+          )}          {error && (
+            <div className="tramite-error">
+              <p style={{ color: 'red', margin: '10px 0' }}>{error}</p>
+            </div>
           )}
 
           {tramite.estado === 'En revisión' && (
             <div className="tramite-actions">
-              <button className="btn-aprobar">Aprobar Trámite</button>
-              <button className="btn-rechazar">Rechazar Trámite</button>
+              <button 
+                className="btn-aprobar" 
+                onClick={handleAprobar}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Procesando...' : 'Aprobar Trámite'}
+              </button>
+              <button 
+                className="btn-rechazar" 
+                onClick={handleRechazar}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Procesando...' : 'Rechazar Trámite'}
+              </button>
             </div>
           )}
         </div>

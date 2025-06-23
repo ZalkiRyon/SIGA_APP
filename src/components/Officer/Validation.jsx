@@ -33,32 +33,33 @@ export default function Validation() {
     if (dateStr.includes('-')) return dateStr; // Ya está en formato ISO
     const [day, month, year] = dateStr.split('/');
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  };  // Función para cargar trámites
+  const loadTramites = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Usar el servicio de API para obtener los trámites
+      const response = await getTramitesValidacion({
+        search: searchTerm,
+        tipo: selectedType,
+        fechaInicio: formatDateForAPI(startDate), // Convertir a formato DD/MM/YYYY
+        page: currentPage,
+        limit: 10
+      });
+      
+      setTramites(response.tramites || []);
+      setTotalPages(response.pagination?.totalPages || 1);
+    } catch (err) {
+      console.error('Error al cargar trámites:', err);
+      setError('Error al cargar los trámites. ' + (err.message || 'Inténtelo de nuevo más tarde.'));
+      setTramites([]);
+    } finally {
+      setLoading(false);
+    }
   };
-    // Cargar datos de trámites
-  useEffect(() => {
-    const loadTramites = async () => {
-      setLoading(true);
-      setError(null);
-      try {        // Usar el servicio de API para obtener los trámites
-        const response = await getTramitesValidacion({
-          search: searchTerm,
-          tipo: selectedType,
-          fechaInicio: formatDateForAPI(startDate), // Convertir a formato DD/MM/YYYY
-          page: currentPage,
-          limit: 10
-        });
-        
-        setTramites(response.tramites || []);
-        setTotalPages(response.pagination?.totalPages || 1);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error al cargar trámites:', err);
-        setError('Error al cargar los trámites. ' + (err.message || 'Inténtelo de nuevo más tarde.'));
-        setLoading(false);
-        setTramites([]);
-      }
-    };
 
+  // Cargar datos de trámites
+  useEffect(() => {
     loadTramites();
   }, [currentPage]); // Solo se recarga cuando cambia la página
   // Filtrar trámites
@@ -92,6 +93,11 @@ export default function Validation() {
     setStartDate('2025-05-30'); // Formato ISO para el input date
     setCurrentPage(1);
   };
+  // Función para refrescar los datos después de aprobar/rechazar
+  const handleTramiteUpdated = async () => {
+    await loadTramites();
+  };
+
   // Ver detalles de un trámite
   const handleVerTramite = async (tramiteId) => {
     try {
@@ -268,11 +274,13 @@ export default function Validation() {
               </button>
             </div>
           )}
-        </div>
-
-        {/* Modal de detalles de trámite */}
+        </div>        {/* Modal de detalles de trámite */}
         {showModal && selectedTramite && (
-          <TramiteDetailsModal tramite={selectedTramite} onClose={handleCloseModal} />
+          <TramiteDetailsModal 
+            tramite={selectedTramite} 
+            onClose={handleCloseModal} 
+            onTramiteUpdated={handleTramiteUpdated}
+          />
         )}
       </div>
     </div>

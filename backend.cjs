@@ -1831,3 +1831,154 @@ app.post('/api/tramites/alimentos', upload.fields([
     res.status(500).json({ error: 'Error al crear el trámite', details: err.message });
   }
 });
+
+// Endpoint para obtener resumen del dashboard del funcionario aduanero
+app.get('/api/officer/dashboard', authenticateToken, async (req, res) => {
+  // Verificar que el usuario sea funcionario aduanero o admin
+  if (req.user.role !== 'officer' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso no autorizado. Solo funcionarios aduaneros pueden acceder al dashboard.' });
+  }
+
+  console.log('📊 Obteniendo datos del dashboard para funcionario aduanero...');
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Contar trámites por estado y tipo
+    const resumenQueries = [
+      // Contar pendientes
+      `SELECT COUNT(*) as pendientes FROM (
+        SELECT id FROM tramites_vehiculo WHERE estado = 'En revisión'
+        UNION ALL
+        SELECT id FROM tramites_menores WHERE estado = 'En revisión'
+        UNION ALL
+        SELECT id FROM tramites_alimentos WHERE estado = 'En revisión'
+      ) AS pendientes_total`,
+      
+      // Contar aprobados
+      `SELECT COUNT(*) as aprobados FROM (
+        SELECT id FROM tramites_vehiculo WHERE estado = 'Aprobado'
+        UNION ALL
+        SELECT id FROM tramites_menores WHERE estado = 'Aprobado'
+        UNION ALL
+        SELECT id FROM tramites_alimentos WHERE estado = 'Aprobado'
+      ) AS aprobados_total`,
+      
+      // Contar rechazados
+      `SELECT COUNT(*) as rechazados FROM (
+        SELECT id FROM tramites_vehiculo WHERE estado = 'Rechazado'
+        UNION ALL
+        SELECT id FROM tramites_menores WHERE estado = 'Rechazado'
+        UNION ALL
+        SELECT id FROM tramites_alimentos WHERE estado = 'Rechazado'
+      ) AS rechazados_total`,
+      
+      // Contar vehículos totales
+      'SELECT COUNT(*) as vehiculos FROM tramites_vehiculo',
+      
+      // Contar menores totales
+      'SELECT COUNT(*) as menores FROM tramites_menores',
+      
+      // Contar SAG totales
+      'SELECT COUNT(*) as sag FROM tramites_alimentos'
+    ];
+    
+    // Ejecutar todas las consultas
+    const [pendientes] = await connection.query(resumenQueries[0]);
+    const [aprobados] = await connection.query(resumenQueries[1]);
+    const [rechazados] = await connection.query(resumenQueries[2]);
+    const [vehiculos] = await connection.query(resumenQueries[3]);
+    const [menores] = await connection.query(resumenQueries[4]);
+    const [sag] = await connection.query(resumenQueries[5]);
+      // Obtener actividad reciente (últimos 5 trámites)
+    const [actividad] = await connection.query(`
+      SELECT 'vehiculo' as tipo, custom_id, estado, fecha_creacion
+      FROM tramites_vehiculo
+      UNION ALL
+      SELECT 'menor' as tipo, custom_id, estado, fecha_creacion
+      FROM tramites_menores
+      UNION ALL
+      SELECT tipo, custom_id, estado, fecha_creacion
+      FROM tramites_alimentos
+      ORDER BY fecha_creacion DESC
+      LIMIT 5
+    `);
+    
+    // Obtener trámites urgentes (3 más antiguos pendientes)
+    const [urgentes] = await connection.query(`
+      SELECT 'vehiculo' as tipo, id, custom_id, estado, fecha_creacion
+      FROM tramites_vehiculo
+      WHERE estado = 'En revisión'
+      UNION ALL
+      SELECT 'menor' as tipo, id, custom_id, estado, fecha_creacion
+      FROM tramites_menores
+      WHERE estado = 'En revisión'
+      UNION ALL
+      SELECT tipo, id, custom_id, estado, fecha_creacion
+      FROM tramites_alimentos
+      WHERE estado = 'En revisión'
+      ORDER BY fecha_creacion ASC
+      LIMIT 3
+    `);
+    
+    await connection.end();
+    
+    console.log('✅ Datos del dashboard obtenidos exitosamente');
+      // Formatear respuesta
+    const dashboard = {
+      resumen: {
+        pendientes: pendientes[0].pendientes,
+        aprobados: aprobados[0].aprobados,
+        rechazados: rechazados[0].rechazados,
+        total: pendientes[0].pendientes + aprobados[0].aprobados + rechazados[0].rechazados
+      },
+      distribucion: {
+        vehiculos: vehiculos[0].vehiculos,
+        menores: menores[0].menores,
+        sag: sag[0].sag
+      },
+      actividadReciente: actividad.map(item => {
+        let tipoTexto = '';
+        switch(item.tipo) {
+          case 'vehiculo': tipoTexto = 'Vehículo temporal'; break;
+          case 'menor': tipoTexto = 'Menor de edad'; break;
+          case 'vegetal': tipoTexto = 'SAG Vegetal'; break;
+          case 'animal': tipoTexto = 'SAG Animal'; break;
+          case 'mascota': tipoTexto = 'SAG Mascota'; break;
+        }
+        
+        return {
+          id: item.custom_id,
+          tipo: tipoTexto,
+          estado: item.estado,
+          fecha: format(new Date(item.fecha_creacion), 'dd/MM/yyyy')
+        };
+      }),
+      tramitesUrgentes: urgentes.map(item => {
+        let tipoTexto = '';
+        switch(item.tipo) {
+          case 'vehiculo': tipoTexto = 'Vehículo temporal'; break;
+          case 'menor': tipoTexto = 'Menor de edad'; break;
+          case 'vegetal': tipoTexto = 'SAG Vegetal'; break;
+          case 'animal': tipoTexto = 'SAG Animal'; break;
+          case 'mascota': tipoTexto = 'SAG Mascota'; break;
+        }
+        
+        return {
+          id: item.id,
+          customId: item.custom_id,
+          tipo: tipoTexto,
+          estado: item.estado,
+          fecha: format(new Date(item.fecha_creacion), 'dd/MM/yyyy'),
+          diasPendiente: Math.floor((Date.now() - new Date(item.fecha_creacion)) / (1000 * 60 * 60 * 24))
+        };
+      })
+    };
+    
+    res.json(dashboard);
+    
+  } catch (err) {
+    console.error('❌ Error al obtener dashboard del funcionario:', err);
+    res.status(500).json({ error: 'Error al consultar el dashboard' });
+  }
+});

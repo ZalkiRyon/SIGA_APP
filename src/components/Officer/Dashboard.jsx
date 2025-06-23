@@ -32,8 +32,7 @@ export default function OfficerDashboard({ user }) {
         setError(null);
       } catch (err) {
         console.error('Error al cargar dashboard:', err);
-        setError('Error al cargar los datos del dashboard');
-        // Datos de fallback en caso de error
+        setError('Error al cargar los datos del dashboard');        // Datos de fallback en caso de error
         setDashboardData({
           resumen: {
             pendientes: 0,
@@ -46,10 +45,7 @@ export default function OfficerDashboard({ user }) {
             menores: 0,
             sag: 0
           },
-          tramitesUrgentes: [
-            { prioridad: 'Alta prioridad', items: [] },
-            { prioridad: 'Media prioridad', items: [] }
-          ],
+          tramitesUrgentes: [],
           actividadReciente: []
         });
       } finally {
@@ -80,7 +76,6 @@ export default function OfficerDashboard({ user }) {
     { label: 'Aprobados', value: dashboardData?.resumen?.aprobados || 0, color: '#b9f6ca' },
     { label: 'Rechazados', value: dashboardData?.resumen?.rechazados || 0, color: '#ff8a80' },
   ];
-
   const vehiculos = dashboardData?.distribucion?.vehiculos || 0;
   const menores = dashboardData?.distribucion?.menores || 0;
   const mascotas = dashboardData?.distribucion?.sag || 0;
@@ -149,18 +144,48 @@ export default function OfficerDashboard({ user }) {
               SAG/Mascotas<br /><span style={{ fontWeight: 700, fontSize: '1.2rem' }}>{mascotas}</span>
             </div>
           </div>
-        </section>
-        <section>
+        </section>        <section>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBlockEnd: '1.2rem' }}>Lista trámites urgentes</h2>
           <div style={{ border: '2px solid #222', borderRadius: 8, padding: '1.2rem', background: '#fff', color: '#222' }}>
-            {tramitesUrgentes.map((t, idx) => (
-              <div key={t.prioridad} style={{ marginBlockEnd: idx < tramitesUrgentes.length - 1 ? '1rem' : '0' }}>
-                <b>{t.prioridad}</b>
-                <ul style={{ margin: 0, paddingInlineStart: '1.2rem' }}>
-                  {t.items.length === 0 ? <li>—</li> : t.items.map((item, i) => <li key={i}>{item}</li>)}
+            {tramitesUrgentes.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
+                No hay trámites urgentes pendientes
+              </div>
+            ) : (
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: '#d32f2f' }}>
+                  Trámites más antiguos pendientes
+                </h3>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {tramitesUrgentes.map((tramite, index) => (
+                    <li key={`${tramite.tipo}-${tramite.id}`} style={{ 
+                      padding: '0.8rem 1rem', 
+                      marginBottom: '0.5rem', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px', 
+                      backgroundColor: '#fafafa',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <span style={{ fontWeight: 600, color: '#1976d2' }}>
+                          {tramite.customId}
+                        </span>
+                        <span style={{ margin: '0 0.5rem', color: '#666' }}>—</span>
+                        <span>{tramite.tipo}</span>
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '0.9rem', color: '#666' }}>
+                        <div>{tramite.fecha}</div>
+                        <div style={{ color: '#d32f2f', fontWeight: 500 }}>
+                          {tramite.diasPendiente} día{tramite.diasPendiente !== 1 ? 's' : ''} pendiente
+                        </div>
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               </div>
-            ))}
+            )}
           </div>
         </section>
       </main>

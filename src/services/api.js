@@ -644,7 +644,8 @@ export async function aprobarRechazarTramite(tramiteId, decision, motivoRechazo 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ motivoRechazo })
+      body: JSON.stringify({ motivo: motivoRechazo })
+    });
     });
     
     if (!response.ok) {
