@@ -1361,106 +1361,159 @@ app.get('/api/officer/dashboard', authenticateToken, async (req, res) => {
 
   try {
     const connection = await mysql.createConnection(dbConfig);
+    console.log('Obteniendo datos del dashboard para funcionario aduanero...');
     
-    // Contar trámites por estado y tipo
-    const resumenQueries = [
-      // Contar pendientes
-      `SELECT COUNT(*) as pendientes FROM (
-        SELECT id FROM tramites_vehiculo WHERE estado = 'En revisión'
+    // Obtener conteos por estado de todos los trámites
+    const [conteoEstados] = await connection.query(`
+      SELECT 
+        SUM(CASE WHEN estado = 'En revisión' THEN 1 ELSE 0 END) as pendientes,
+        SUM(CASE WHEN estado = 'Aprobado' THEN 1 ELSE 0 END) as aprobados,
+        SUM(CASE WHEN estado = 'Rechazado' THEN 1 ELSE 0 END) as rechazados,
+        COUNT(*) as total
+      FROM (
+        SELECT estado FROM tramites_vehiculo
         UNION ALL
-        SELECT id FROM tramites_menores WHERE estado = 'En revisión'
+        SELECT estado FROM tramites_menores
         UNION ALL
-        SELECT id FROM tramites_alimentos WHERE estado = 'En revisión'
-      ) AS pendientes_total`,
-      
-      // Contar aprobados
-      `SELECT COUNT(*) as aprobados FROM (
-        SELECT id FROM tramites_vehiculo WHERE estado = 'Aprobado'
-        UNION ALL
-        SELECT id FROM tramites_menores WHERE estado = 'Aprobado'
-        UNION ALL
-        SELECT id FROM tramites_alimentos WHERE estado = 'Aprobado'
-      ) AS aprobados_total`,
-      
-      // Contar rechazados
-      `SELECT COUNT(*) as rechazados FROM (
-        SELECT id FROM tramites_vehiculo WHERE estado = 'Rechazado'
-        UNION ALL
-        SELECT id FROM tramites_menores WHERE estado = 'Rechazado'
-        UNION ALL
-        SELECT id FROM tramites_alimentos WHERE estado = 'Rechazado'
-      ) AS rechazados_total`,
-      
-      // Contar vehículos totales
-      'SELECT COUNT(*) as vehiculos FROM tramites_vehiculo',
-      
-      // Contar menores totales
-      'SELECT COUNT(*) as menores FROM tramites_menores',
-      
-      // Contar SAG totales
-      'SELECT COUNT(*) as sag FROM tramites_alimentos'
-    ];
+        SELECT estado FROM tramites_alimentos
+      ) AS todos_tramites
+    `);
     
-    // Ejecutar todas las consultas
-    const [pendientes] = await connection.query(resumenQueries[0]);
-    const [aprobados] = await connection.query(resumenQueries[1]);
-    const [rechazados] = await connection.query(resumenQueries[2]);
-    const [vehiculos] = await connection.query(resumenQueries[3]);
-    const [menores] = await connection.query(resumenQueries[4]);
-    const [sag] = await connection.query(resumenQueries[5]);
+    // Obtener conteos por tipo de trámite
+    const [conteoVehiculos] = await connection.query('SELECT COUNT(*) as count FROM tramites_vehiculo');
+    const [conteoMenores] = await connection.query('SELECT COUNT(*) as count FROM tramites_menores');
+    const [conteoSAG] = await connection.query('SELECT COUNT(*) as count FROM tramites_alimentos');
     
-    // Obtener actividad reciente (últimos 5 trámites)
-    const [actividad] = await connection.query(`
-      SELECT 'vehiculo' as tipo, custom_id, estado, fecha_creacion
+    // Obtener trámites urgentes (pendientes con más de 2 días)
+    const [tramitesUrgentes] = await connection.query(`
+      SELECT 'vehiculo' as tipo, custom_id, patente as detalle, 
+             DATEDIFF(NOW(), fecha_creacion) as dias_pendiente,
+             DATE_FORMAT(fecha_inicio, '%d/%m/%Y') as fecha_vence
+      FROM tramites_vehiculo 
+      WHERE estado = 'En revisión' AND DATEDIFF(NOW(), fecha_creacion) >= 2
+      UNION ALL
+      SELECT 'menor' as tipo, custom_id, 
+             CONCAT(menor_nombres, ' ', menor_apellidos) as detalle,
+             DATEDIFF(NOW(), fecha_creacion) as dias_pendiente,
+             DATE_FORMAT(fecha_creacion, '%d/%m/%Y') as fecha_vence
+      FROM tramites_menores 
+      WHERE estado = 'En revisión' AND DATEDIFF(NOW(), fecha_creacion) >= 2
+      UNION ALL
+      SELECT CONCAT('sag-', tipo) as tipo, custom_id, descripcion as detalle,
+             DATEDIFF(NOW(), fecha_creacion) as dias_pendiente,
+             DATE_FORMAT(fecha_creacion, '%d/%m/%Y') as fecha_vence
+      FROM tramites_alimentos 
+      WHERE estado = 'En revisión' AND DATEDIFF(NOW(), fecha_creacion) >= 2
+      ORDER BY dias_pendiente DESC
+      LIMIT 10
+    `);
+    
+    // Obtener actividad reciente de cambios de estado (últimos 5)
+    const [actividadReciente] = await connection.query(`
+      SELECT 'vehiculo' as tipo, custom_id, estado, fecha_creacion, 
+             patente as info_adicional
       FROM tramites_vehiculo
+      WHERE estado IN ('Aprobado', 'Rechazado')
       UNION ALL
-      SELECT 'menor' as tipo, custom_id, estado, fecha_creacion
+      SELECT 'menor' as tipo, custom_id, estado, fecha_creacion,
+             CONCAT(menor_nombres, ' ', menor_apellidos) as info_adicional
       FROM tramites_menores
+      WHERE estado IN ('Aprobado', 'Rechazado')
       UNION ALL
-      SELECT tipo, custom_id, estado, fecha_creacion
+      SELECT CONCAT('sag-', tipo) as tipo, custom_id, estado, fecha_creacion,
+             descripcion as info_adicional
       FROM tramites_alimentos
+      WHERE estado IN ('Aprobado', 'Rechazado')
       ORDER BY fecha_creacion DESC
       LIMIT 5
     `);
     
     await connection.end();
     
-    // Formatear respuesta
+    // Procesar trámites urgentes para el formato requerido
+    const tramitesUrgentesFormateados = {
+      'Alta prioridad': [],
+      'Media prioridad': []
+    };
+    
+    tramitesUrgentes.forEach(tramite => {
+      let descripcion = '';
+      let prioridad = tramite.dias_pendiente >= 3 ? 'Alta prioridad' : 'Media prioridad';
+      
+      switch(tramite.tipo) {
+        case 'vehiculo':
+          if (tramite.detalle && tramite.detalle.includes('DIP')) {
+            descripcion = `#${tramite.custom_id}: Vehículo con placas diplomáticas (vence ${tramite.fecha_vence}).`;
+            prioridad = 'Alta prioridad';
+          } else {
+            descripcion = `#${tramite.custom_id}: Vehículo pendiente de revisión (${tramite.dias_pendiente} días).`;
+          }
+          break;
+        case 'menor':
+          if (tramite.dias_pendiente >= 2) {
+            descripcion = `#${tramite.custom_id}: Menor sin autorización notarial (en espera ${tramite.dias_pendiente * 24}h).`;
+            prioridad = 'Alta prioridad';
+          } else {
+            descripcion = `#${tramite.custom_id}: Documentación menor pendiente (${tramite.dias_pendiente} días).`;
+          }
+          break;
+        default:
+          descripcion = `#${tramite.custom_id}: Trámite SAG pendiente (${tramite.dias_pendiente} días).`;
+          break;
+      }
+      
+      tramitesUrgentesFormateados[prioridad].push(descripcion);
+    });
+    
+    // Formatear respuesta completa
     const dashboard = {
       resumen: {
-        pendientes: pendientes[0].pendientes,
-        aprobados: aprobados[0].aprobados,
-        rechazados: rechazados[0].rechazados,
-        total: pendientes[0].pendientes + aprobados[0].aprobados + rechazados[0].rechazados
+        pendientes: conteoEstados[0].pendientes || 0,
+        aprobados: conteoEstados[0].aprobados || 0,
+        rechazados: conteoEstados[0].rechazados || 0,
+        total: conteoEstados[0].total || 0
       },
       distribucion: {
-        vehiculos: vehiculos[0].vehiculos,
-        menores: menores[0].menores,
-        sag: sag[0].sag
+        vehiculos: conteoVehiculos[0].count || 0,
+        menores: conteoMenores[0].count || 0,
+        sag: conteoSAG[0].count || 0
       },
-      actividadReciente: actividad.map(item => {
+      tramitesUrgentes: [
+        {
+          prioridad: 'Alta prioridad',
+          items: tramitesUrgentesFormateados['Alta prioridad']
+        },
+        {
+          prioridad: 'Media prioridad', 
+          items: tramitesUrgentesFormateados['Media prioridad']
+        }
+      ],
+      actividadReciente: actividadReciente.map(item => {
         let tipoTexto = '';
         switch(item.tipo) {
           case 'vehiculo': tipoTexto = 'Vehículo temporal'; break;
-          case 'menor': tipoTexto = 'Menor de edad'; break;
-          case 'vegetal': tipoTexto = 'SAG Vegetal'; break;
-          case 'animal': tipoTexto = 'SAG Animal'; break;
-          case 'mascota': tipoTexto = 'SAG Mascota'; break;
+          case 'menor': tipoTexto = 'Documentación menor'; break;
+          case 'sag-vegetal': tipoTexto = 'SAG Vegetal'; break;
+          case 'sag-animal': tipoTexto = 'SAG Animal'; break;
+          case 'sag-mascota': tipoTexto = 'SAG Mascota'; break;
+          default: tipoTexto = 'Trámite'; break;
         }
         
         return {
           id: item.custom_id,
           tipo: tipoTexto,
           estado: item.estado,
-          fecha: format(new Date(item.fecha_creacion), 'dd/MM/yyyy')
+          fecha: format(new Date(item.fecha_creacion), 'dd/MM/yyyy'),
+          detalle: item.info_adicional
         };
       })
     };
     
+    console.log('Dashboard data:', dashboard);
     res.json(dashboard);
     
   } catch (err) {
     console.error('Error al obtener dashboard del funcionario:', err);
-    res.status(500).json({ error: 'Error al consultar el dashboard' });
+    res.status(500).json({ error: 'Error al consultar el dashboard', details: err.message });
   }
 });

@@ -1,44 +1,121 @@
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from '../Shared/Sidebar';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 export default function OfficerDashboard({ user }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Datos simulados para la UI
+  // Cargar datos del dashboard desde el backend
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:4000/api/officer/dashboard', {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setDashboardData(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error al cargar dashboard:', err);
+        setError('Error al cargar los datos del dashboard');
+        // Datos de fallback en caso de error
+        setDashboardData({
+          resumen: {
+            pendientes: 0,
+            aprobados: 0,
+            rechazados: 0,
+            total: 0
+          },
+          distribucion: {
+            vehiculos: 0,
+            menores: 0,
+            sag: 0
+          },
+          tramitesUrgentes: [
+            { prioridad: 'Alta prioridad', items: [] },
+            { prioridad: 'Media prioridad', items: [] }
+          ],
+          actividadReciente: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', blockSize: '100vh', background: '#fff' }}>
+        <Sidebar role="officer" onLogout={logout} />
+        <main style={{ flex: 1, padding: '2.5rem 3rem', color: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Cargando dashboard...</div>
+            <div style={{ width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #1976d2', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Formatear datos para la UI
   const resumen = [
-    { label: 'Pendientes', value: 12, color: '#ffe082' },
-    { label: 'Aprobados', value: 45, color: '#b9f6ca' },
-    { label: 'Rechazados', value: 7, color: '#ff8a80' },
-  ];
-  const vehiculos = 28;
-  const menores = 19;
-  const mascotas = 17;
-  const tramitesUrgentes = [
-    { prioridad: 'Alta prioridad', items: [
-      '#TR-6052: Vehículo con placas diplomáticas (vence hoy).',
-      '#TR-6018: Menor sin autorización notarial (en espera 48h).'
-    ]},
-    { prioridad: 'Media prioridad', items: [] }
+    { label: 'Pendientes', value: dashboardData?.resumen?.pendientes || 0, color: '#ffe082' },
+    { label: 'Aprobados', value: dashboardData?.resumen?.aprobados || 0, color: '#b9f6ca' },
+    { label: 'Rechazados', value: dashboardData?.resumen?.rechazados || 0, color: '#ff8a80' },
   ];
 
+  const vehiculos = dashboardData?.distribucion?.vehiculos || 0;
+  const menores = dashboardData?.distribucion?.menores || 0;
+  const mascotas = dashboardData?.distribucion?.sag || 0;
+  const tramitesUrgentes = dashboardData?.tramitesUrgentes || [];
   return (
-    <div style={{ display: 'flex', blockSize: '100vh', background: '#fff' }}>
-      <Sidebar role="officer" onLogout={logout} />
-      <main style={{ flex: 1, padding: '2.5rem 3rem', color: '#222' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBlockEnd: '2rem' }}>
+    <>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+      <div style={{ display: 'flex', blockSize: '100vh', background: '#fff' }}>
+        <Sidebar role="officer" onLogout={logout} />
+        <main style={{ flex: 1, padding: '2.5rem 3rem', color: '#222' }}>        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBlockEnd: '2rem' }}>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 600, borderBlockEnd: '2px solid #222', paddingBlockEnd: '0.3rem', margin: 0 }}>
             Bienvenido, Aduanero
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {error && (
+              <span style={{ color: 'red', fontSize: '0.9rem', marginRight: '1rem' }}>
+                ⚠️ {error}
+              </span>
+            )}
             <span title="Notificaciones" style={{ fontSize: '1.7rem', position: 'relative' }}>
               <span style={{ fontSize: '2rem' }}>🔔</span>
-              <span style={{ position: 'absolute', insetBlockStart: 0, insetInlineEnd: 0, inlineSize: 10, blockSize: 10, background: 'yellow', borderRadius: '50%' }}></span>
+              {(dashboardData?.resumen?.pendientes || 0) > 0 && (
+                <span style={{ position: 'absolute', insetBlockStart: 0, insetInlineEnd: 0, inlineSize: 10, blockSize: 10, background: 'yellow', borderRadius: '50%' }}></span>
+              )}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
               <span style={{ inlineSize: 32, blockSize: 32, borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.1rem' }}>
-                {user.name[0]}
+                {user?.name?.[0] || user?.nombre?.[0] || 'A'}
               </span>
               Aduanero
             </span>
@@ -77,7 +154,7 @@ export default function OfficerDashboard({ user }) {
           <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBlockEnd: '1.2rem' }}>Lista trámites urgentes</h2>
           <div style={{ border: '2px solid #222', borderRadius: 8, padding: '1.2rem', background: '#fff', color: '#222' }}>
             {tramitesUrgentes.map((t, idx) => (
-              <div key={t.prioridad} style={{ marginBlockEnd: '1rem' }}>
+              <div key={t.prioridad} style={{ marginBlockEnd: idx < tramitesUrgentes.length - 1 ? '1rem' : '0' }}>
                 <b>{t.prioridad}</b>
                 <ul style={{ margin: 0, paddingInlineStart: '1.2rem' }}>
                   {t.items.length === 0 ? <li>—</li> : t.items.map((item, i) => <li key={i}>{item}</li>)}
@@ -88,5 +165,6 @@ export default function OfficerDashboard({ user }) {
         </section>
       </main>
     </div>
+    </>
   );
 }

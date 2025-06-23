@@ -128,16 +128,34 @@
 .date-input-container {
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .date-input {
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 4px;
+  width: 160px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: white;
 }
 
-.calendar-icon {
-  margin-left: 0.5rem;
+.date-input:focus {
+  outline: none;
+  border-color: #0056b3;
+  box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.2);
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  width: 16px;
+  height: 16px;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .button-container {

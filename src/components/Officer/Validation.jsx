@@ -7,31 +7,43 @@ import './Validation.css';
 
 // Validación para Funcionario Aduanero
 export default function Validation() {
-  const { user, logout } = useAuth();
-  // Estado para almacenar la búsqueda, filtros y paginación
+  const { user, logout } = useAuth();  // Estado para almacenar la búsqueda, filtros y paginación
   const [searchTerm, setSearchTerm] = useState('');  const [selectedType, setSelectedType] = useState('');
-  const [startDate, setStartDate] = useState('30/05/2025');
+  const [startDate, setStartDate] = useState('2025-05-30'); // Formato ISO para input date
   const [currentPage, setCurrentPage] = useState(1);
   const [tramites, setTramites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
-
   // Estado para el modal de detalles
   const [selectedTramite, setSelectedTramite] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Función para convertir fecha de formato ISO (YYYY-MM-DD) a formato DD/MM/YYYY
+  const formatDateForAPI = (isoDate) => {
+    if (!isoDate) return '';
+    const [year, month, day] = isoDate.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  // Función para convertir fecha de formato DD/MM/YYYY a formato ISO (YYYY-MM-DD)
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('-')) return dateStr; // Ya está en formato ISO
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  };
     // Cargar datos de trámites
   useEffect(() => {
     const loadTramites = async () => {
       setLoading(true);
       setError(null);
-      try {
-        // Usar el servicio de API para obtener los trámites
+      try {        // Usar el servicio de API para obtener los trámites
         const response = await getTramitesValidacion({
           search: searchTerm,
           tipo: selectedType,
-          fechaInicio: startDate,
+          fechaInicio: formatDateForAPI(startDate), // Convertir a formato DD/MM/YYYY
           page: currentPage,
           limit: 10
         });
@@ -73,12 +85,12 @@ export default function Validation() {
       setLoading(false);
     }
   };
-
   // Limpiar filtros
   const handleClearFilter = () => {
     setSearchTerm('');
     setSelectedType('');
-    // No limpiamos la fecha para mantenerla como en la imagen de ejemplo
+    setStartDate('2025-05-30'); // Formato ISO para el input date
+    setCurrentPage(1);
   };
   // Ver detalles de un trámite
   const handleVerTramite = async (tramiteId) => {
@@ -151,18 +163,17 @@ export default function Validation() {
                 <option value="sag">Declaración SAG</option>
                 <option value="menor">Documentación Menor</option>
               </select>
-            </div>
-
-            <div className="filter-group fecha-container">
+            </div>            <div className="filter-group fecha-container">
               <div className="fecha-label">Fecha inicio</div>
               <div className="date-input-container">
                 <input
-                  type="text"
+                  type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="date-input"
+                  max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
+                  title="Seleccionar fecha de inicio para filtrar trámites"
                 />
-                <span className="calendar-icon">📅</span>
               </div>
             </div>
 
