@@ -105,6 +105,38 @@ npm run dev
 | carmen.silva@hotmail.com | pass456 |
 | roberto.muñoz@outlook.com | pass789 |
 
+## 🌐 ACCESO DESDE OTROS COMPUTADORES
+
+### Configuración de Red
+
+**1. URLs de Acceso**
+- Frontend: http://[IP-DEL-SERVIDOR]:5173
+- Backend: http://[IP-DEL-SERVIDOR]:4000
+
+**2. Encontrar IP del servidor**
+```bash
+# Windows
+ipconfig
+
+# macOS/Linux
+ifconfig
+```
+
+**3. Configurar Firewall (Windows)**
+```powershell
+# Ejecutar como Administrador o usar el script:
+.\configure_firewall.ps1
+```
+
+**4. Ejemplo de uso**
+Si la IP del servidor es 192.168.1.100:
+- Acceder desde otro PC: http://192.168.1.100:5173
+
+### Requisitos de Red
+- Computadores en la misma red local
+- Puertos 5173 y 4000 abiertos en firewall
+- Router configurado (para acceso externo)
+
 ## 🔧 Configuración de Base de Datos
 
 ### Configuración por Defecto

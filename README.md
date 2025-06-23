@@ -201,8 +201,10 @@ npm run preview
 
 ## 🌐 URLs de Acceso
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:4000
+- **Frontend**: http://localhost:5173 (o http://[IP-LOCAL]:5173 para acceso remoto)
+- **Backend API**: http://localhost:4000 (o http://[IP-LOCAL]:4000 para acceso remoto)
+
+> **Nota**: Al iniciar el backend, se mostrará automáticamente la IP local del servidor para facilitar el acceso desde otros computadores.
 
 ## 👥 Usuarios de Prueba
 
@@ -257,6 +259,46 @@ SIGA_APP/
 └── prototipo/           # Prototipos de diseño
 ```
 
+## 🌐 Acceso desde Otros Computadores
+
+El sistema SIGA está configurado para ser accesible desde otros computadores en la red local.
+
+### URLs de Acceso en Red
+- **Frontend**: http://[IP-DEL-SERVIDOR]:5173
+- **Backend API**: http://[IP-DEL-SERVIDOR]:4000
+
+### Para encontrar la IP del servidor:
+```bash
+# Windows
+ipconfig
+
+# macOS/Linux
+ifconfig
+```
+
+### Ejemplo de Acceso
+Si la IP del computador servidor es `192.168.1.100`:
+- **Frontend**: http://192.168.1.100:5173
+- **Backend**: http://192.168.1.100:4000
+
+### Configuración de Red
+1. **Firewall**: Asegurar que los puertos 5173 y 4000 estén abiertos
+2. **Router**: Para acceso desde internet, configurar port forwarding
+3. **Antivirus**: Verificar que no bloquee las conexiones
+
+### Configuración de Firewall Windows
+```powershell
+# Abrir puertos en Windows Firewall
+netsh advfirewall firewall add rule name="SIGA Frontend" dir=in action=allow protocol=TCP localport=5173
+netsh advfirewall firewall add rule name="SIGA Backend" dir=in action=allow protocol=TCP localport=4000
+```
+
+### Para uso en producción o acceso externo:
+- Configurar HTTPS con certificados SSL
+- Implementar autenticación más robusta
+- Configurar reverse proxy (nginx/Apache)
+- Usar variables de entorno para configuración
+
 ## 🔒 Seguridad
 
 - Autenticación basada en JWT
@@ -275,7 +317,7 @@ SIGA_APP/
 ### Error de Puerto en Uso
 ```bash
 # Cambiar puerto del backend en backend.cjs
-const PORT = 4001; // Cambiar de 4000 a otro puerto
+const PORT = 4001; # Cambiar de 4000 a otro puerto
 
 # Para el frontend, modificar vite.config.js o usar:
 npm run dev -- --port 5174

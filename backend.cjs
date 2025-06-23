@@ -1234,8 +1234,12 @@ app.put('/api/configuracion', authenticateToken, async (req, res) => {
 
 // Iniciar servidor
 const PORT = 4000;
-app.listen(PORT, async () => {
-  console.log(`Backend SIGA escuchando en http://localhost:${PORT}`);
+const HOST = '0.0.0.0'; // Permitir conexiones desde cualquier IP
+app.listen(PORT, HOST, async () => {
+  console.log(`🌐 Backend SIGA escuchando en:`);
+  console.log(`   Local:    http://localhost:${PORT}`);
+  console.log(`   Red:      http://${getLocalIP()}:${PORT}`);
+  console.log(`   Todas:    http://0.0.0.0:${PORT}`);
   
   // Probar conexión a la base de datos
   try {
@@ -1250,6 +1254,33 @@ app.listen(PORT, async () => {
   } catch (err) {
     console.error('❌ Error al conectar a MySQL:', err);  }
 });
+
+// Función para obtener la IP local
+function getLocalIP() {
+  const { networkInterfaces } = require('os');
+  const nets = networkInterfaces();
+  const results = {};
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // Omitir direcciones no IPv4 e internas (127.0.0.1)
+      const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4;
+      if (net.family === familyV4Value && !net.internal) {
+        if (!results[name]) {
+          results[name] = [];
+        }
+        results[name].push(net.address);
+      }
+    }
+  }
+
+  // Retornar la primera IP encontrada
+  const interfaces = Object.values(results);
+  if (interfaces.length > 0 && interfaces[0].length > 0) {
+    return interfaces[0][0];
+  }
+  return 'localhost';
+}
 
 // Endpoints para obtener trámites individuales por ID
 
