@@ -646,7 +646,6 @@ export async function aprobarRechazarTramite(tramiteId, decision, motivoRechazo 
       },
       body: JSON.stringify({ motivo: motivoRechazo })
     });
-    });
     
     if (!response.ok) {
       let errorData;
