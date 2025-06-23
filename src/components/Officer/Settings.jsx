@@ -5,7 +5,7 @@ import './Settings.css';
 
 // Configuración para Funcionario Aduanero
 export default function OfficerSettings() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [settings, setSettings] = useState({
     darkMode: false,
     defaultView: 'inicio',
@@ -77,7 +77,7 @@ export default function OfficerSettings() {
   };
   return (
     <div className="settings-container">
-      <Sidebar role="officer" />
+      <Sidebar role="officer" onLogout={logout} />
       <div className="settings-content">
         <header className="settings-header">
           <div>

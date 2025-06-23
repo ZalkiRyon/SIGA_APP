@@ -103,11 +103,11 @@ const updates = [
 
 export default function Documentation() {
 	const [openPanel, setOpenPanel] = useState(0);
-	const { user } = useAuth();
+	const { user, logout } = useAuth();
 
 	return (
 		<div className="doc-page">
-			<Sidebar />
+			<Sidebar role="passenger" onLogout={logout} />
 			<div className="doc-main" style={{ paddingInlineStart: 32 }}>
 				<header className="doc-header">
 					<span className="doc-title">Documentación</span>

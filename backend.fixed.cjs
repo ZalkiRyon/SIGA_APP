@@ -153,7 +153,8 @@ app.get('/api/tramites/validacion', authenticateToken, async (req, res) => {
       }
       queryVehiculo += ` AND tv.fecha_inicio >= ?`;
       paramsVehiculo.push(fechaSQL);
-    }    if (estado) {
+    }
+    if (estado) {
       queryVehiculo += ` AND tv.estado = ?`;
       paramsVehiculo.push(estado);
     }
@@ -184,7 +185,8 @@ app.get('/api/tramites/validacion', authenticateToken, async (req, res) => {
     if (estado) {
       queryMenores += ` AND tm.estado = ?`;
       paramsMenores.push(estado);
-    }    if (!tipo || tipo === 'menor') {
+    }
+    if (!tipo || tipo === 'menores') {
       queries.push(queryMenores);
       unionParams = unionParams.concat(paramsMenores);
     }
@@ -212,34 +214,15 @@ app.get('/api/tramites/validacion', authenticateToken, async (req, res) => {
       queryAlimentos += ` AND ta.estado = ?`;
       paramsAlimentos.push(estado);
     }
-    
-    // Lógica corregida para los filtros de tipo
-    if (!tipo || tipo === 'sag') {
-      // Si no hay filtro de tipo o es "sag", incluir todos los alimentos
-      queries.push(queryAlimentos);
-      unionParams = unionParams.concat(paramsAlimentos);
-    } else if (tipo && tipo.startsWith('sag-')) {
-      // Si es un subtipo específico de SAG (sag-vegetal, sag-animal, sag-mascota)
+    if (tipo && tipo.startsWith('sag-')) {
       const subTipo = tipo.replace('sag-', '');
       queryAlimentos += ` AND ta.tipo = ?`;
       paramsAlimentos.push(subTipo);
       queries.push(queryAlimentos);
       unionParams = unionParams.concat(paramsAlimentos);
-    }
-
-    // Verificar que hay al menos una consulta
-    if (queries.length === 0) {
-      console.log('No hay consultas para ejecutar con los filtros aplicados');
-      await connection.end();
-      return res.json({
-        tramites: [],
-        pagination: {
-          totalItems: 0,
-          totalPages: 0,
-          currentPage: parseInt(page),
-          pageSize: parseInt(limit)
-        }
-      });
+    } else if (!tipo) {
+      queries.push(queryAlimentos);
+      unionParams = unionParams.concat(paramsAlimentos);
     }
 
     const unionQuery = queries.join(' UNION ALL ');
@@ -1349,118 +1332,5 @@ app.get('/api/tramite/alimentos/:id', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
-  }
-});
-
-// Endpoint para obtener resumen del dashboard del funcionario aduanero
-app.get('/api/officer/dashboard', authenticateToken, async (req, res) => {
-  // Verificar que el usuario sea funcionario aduanero o admin
-  if (req.user.role !== 'officer' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Acceso no autorizado. Solo funcionarios aduaneros pueden acceder al dashboard.' });
-  }
-
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    
-    // Contar trámites por estado y tipo
-    const resumenQueries = [
-      // Contar pendientes
-      `SELECT COUNT(*) as pendientes FROM (
-        SELECT id FROM tramites_vehiculo WHERE estado = 'En revisión'
-        UNION ALL
-        SELECT id FROM tramites_menores WHERE estado = 'En revisión'
-        UNION ALL
-        SELECT id FROM tramites_alimentos WHERE estado = 'En revisión'
-      ) AS pendientes_total`,
-      
-      // Contar aprobados
-      `SELECT COUNT(*) as aprobados FROM (
-        SELECT id FROM tramites_vehiculo WHERE estado = 'Aprobado'
-        UNION ALL
-        SELECT id FROM tramites_menores WHERE estado = 'Aprobado'
-        UNION ALL
-        SELECT id FROM tramites_alimentos WHERE estado = 'Aprobado'
-      ) AS aprobados_total`,
-      
-      // Contar rechazados
-      `SELECT COUNT(*) as rechazados FROM (
-        SELECT id FROM tramites_vehiculo WHERE estado = 'Rechazado'
-        UNION ALL
-        SELECT id FROM tramites_menores WHERE estado = 'Rechazado'
-        UNION ALL
-        SELECT id FROM tramites_alimentos WHERE estado = 'Rechazado'
-      ) AS rechazados_total`,
-      
-      // Contar vehículos totales
-      'SELECT COUNT(*) as vehiculos FROM tramites_vehiculo',
-      
-      // Contar menores totales
-      'SELECT COUNT(*) as menores FROM tramites_menores',
-      
-      // Contar SAG totales
-      'SELECT COUNT(*) as sag FROM tramites_alimentos'
-    ];
-    
-    // Ejecutar todas las consultas
-    const [pendientes] = await connection.query(resumenQueries[0]);
-    const [aprobados] = await connection.query(resumenQueries[1]);
-    const [rechazados] = await connection.query(resumenQueries[2]);
-    const [vehiculos] = await connection.query(resumenQueries[3]);
-    const [menores] = await connection.query(resumenQueries[4]);
-    const [sag] = await connection.query(resumenQueries[5]);
-    
-    // Obtener actividad reciente (últimos 5 trámites)
-    const [actividad] = await connection.query(`
-      SELECT 'vehiculo' as tipo, custom_id, estado, fecha_creacion
-      FROM tramites_vehiculo
-      UNION ALL
-      SELECT 'menor' as tipo, custom_id, estado, fecha_creacion
-      FROM tramites_menores
-      UNION ALL
-      SELECT tipo, custom_id, estado, fecha_creacion
-      FROM tramites_alimentos
-      ORDER BY fecha_creacion DESC
-      LIMIT 5
-    `);
-    
-    await connection.end();
-    
-    // Formatear respuesta
-    const dashboard = {
-      resumen: {
-        pendientes: pendientes[0].pendientes,
-        aprobados: aprobados[0].aprobados,
-        rechazados: rechazados[0].rechazados,
-        total: pendientes[0].pendientes + aprobados[0].aprobados + rechazados[0].rechazados
-      },
-      distribucion: {
-        vehiculos: vehiculos[0].vehiculos,
-        menores: menores[0].menores,
-        sag: sag[0].sag
-      },
-      actividadReciente: actividad.map(item => {
-        let tipoTexto = '';
-        switch(item.tipo) {
-          case 'vehiculo': tipoTexto = 'Vehículo temporal'; break;
-          case 'menor': tipoTexto = 'Menor de edad'; break;
-          case 'vegetal': tipoTexto = 'SAG Vegetal'; break;
-          case 'animal': tipoTexto = 'SAG Animal'; break;
-          case 'mascota': tipoTexto = 'SAG Mascota'; break;
-        }
-        
-        return {
-          id: item.custom_id,
-          tipo: tipoTexto,
-          estado: item.estado,
-          fecha: format(new Date(item.fecha_creacion), 'dd/MM/yyyy')
-        };
-      })
-    };
-    
-    res.json(dashboard);
-    
-  } catch (err) {
-    console.error('Error al obtener dashboard del funcionario:', err);
-    res.status(500).json({ error: 'Error al consultar el dashboard' });
   }
 });

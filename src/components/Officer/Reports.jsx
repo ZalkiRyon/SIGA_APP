@@ -5,7 +5,7 @@ import './Reports.css';
 
 // Reportes para Funcionario Aduanero
 export default function Reports() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [reportData, setReportData] = useState({
     tipoMovimiento: '',
     frontera: '',
@@ -47,7 +47,7 @@ export default function Reports() {
 
   return (
     <div className="reports-container">
-      <Sidebar role="officer" />
+      <Sidebar role="officer" onLogout={logout} />
       <div className="reports-content">
         <header className="reports-header">
           <div>

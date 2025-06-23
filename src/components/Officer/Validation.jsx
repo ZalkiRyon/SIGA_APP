@@ -7,7 +7,7 @@ import './Validation.css';
 
 // Validación para Funcionario Aduanero
 export default function Validation() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   // Estado para almacenar la búsqueda, filtros y paginación
   const [searchTerm, setSearchTerm] = useState('');  const [selectedType, setSelectedType] = useState('');
   const [startDate, setStartDate] = useState('30/05/2025');
@@ -103,7 +103,7 @@ export default function Validation() {
 
   return (
     <div className="validation-container">
-      <Sidebar role="officer" />
+      <Sidebar role="officer" onLogout={logout} />
       <div className="validation-content">        <header className="validation-header">
           <div>
             <h1 className="page-title">

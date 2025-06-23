@@ -24,7 +24,7 @@ function SuccessModal({ open, onClose, message }) {
 }
 
 export default function NewVehicleProcedure() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [form, setForm] = useState({
     patente: '',
     marca: '',
@@ -85,7 +85,7 @@ export default function NewVehicleProcedure() {
 
   return (
     <div className="tram-page">
-      <Sidebar />
+      <Sidebar role="passenger" onLogout={logout} />
       <main className="tram-main tram-main-nuevo">
         <header className="tram-header tram-header-nuevo">
           <h1 className="tram-title tram-title-nuevo veh-title">Nuevo Trámite: Vehículo temporal</h1>

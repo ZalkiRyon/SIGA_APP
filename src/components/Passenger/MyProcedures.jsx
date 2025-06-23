@@ -10,7 +10,7 @@ const ESTADOS = ['Aprobado', 'En revisión', 'Rechazado'];
 const TIPOS = ['Vehículos', 'Mascotas o alimentos', 'Menores de edad'];
 
 export default function MyProcedures() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [filtroInicio, setFiltroInicio] = useState('');
   const [filtroTermino, setFiltroTermino] = useState('');
@@ -171,7 +171,7 @@ export default function MyProcedures() {
 
   return (
     <div className="tram-page" style={{display: 'flex', blockSize: '100vh', background: '#fff'}}>
-      <Sidebar />
+      <Sidebar role="passenger" onLogout={logout} />
       <main className="tram-main">
         <header className="tram-header">
           <h1 className="tram-title">Mis trámites</h1>

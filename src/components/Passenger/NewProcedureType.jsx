@@ -14,7 +14,7 @@ const OPTIONS = [
 export default function NewProcedureType() {
   const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleNext = () => {
     if (!selected) return;
@@ -25,7 +25,7 @@ export default function NewProcedureType() {
 
   return (
     <div className="tram-page" style={{display: 'flex', blockSize: '100vh', background: '#fff'}}>
-      <Sidebar />
+      <Sidebar role="passenger" onLogout={logout} />
       <main className="tram-main tram-main-nuevo">
         <header className="tram-header tram-header-nuevo">
           <h1 className="tram-title tram-title-nuevo">¿Qué trámite deseas iniciar?</h1>

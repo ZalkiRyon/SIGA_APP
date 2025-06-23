@@ -24,7 +24,7 @@ function SuccessModal({ open, onClose, message }) {
 }
 
 export default function NewMinorProcedure() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [form, setForm] = useState({
     menorNombres: '',
     menorApellidos: '',
@@ -67,7 +67,7 @@ export default function NewMinorProcedure() {
 
   return (
     <div className="tram-page">
-      <Sidebar />
+      <Sidebar role="passenger" onLogout={logout} />
       <main className="tram-main tram-main-nuevo">
         <header className="tram-header tram-header-nuevo">
           <h1 className="tram-title tram-title-nuevo veh-title">Nuevo Trámite: Documentación menores</h1>

@@ -5,7 +5,7 @@ import './Alerts.css';
 
 // Alertas para Funcionario Aduanero
 export default function Alerts() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [alertFilter, setAlertFilter] = useState('todos');
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +84,7 @@ export default function Alerts() {
   
   return (
     <div className="alerts-container">
-      <Sidebar role="officer" />
+      <Sidebar role="officer" onLogout={logout} />
       <div className="alerts-content">
         <header className="alerts-header">
           <div>

@@ -25,7 +25,7 @@ function SuccessModal({ open, onClose, message }) {
 }
 
 export default function EditFoodPetProcedure() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -89,7 +89,7 @@ export default function EditFoodPetProcedure() {
 
   return (
     <div className="tram-page">
-      <Sidebar />
+      <Sidebar role="passenger" onLogout={logout} />
       <main className="tram-main tram-main-nuevo">
         <header className="tram-header tram-header-nuevo">
           <h1 className="tram-title tram-title-nuevo veh-title">Editar Solicitud: Declaración SAG</h1>
