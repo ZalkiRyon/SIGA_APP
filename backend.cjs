@@ -1251,40 +1251,43 @@ app.listen(PORT, async () => {
     console.error('❌ Error al conectar a MySQL:', err);  }
 });
 
-// Obtener trámite de vehículo por ID
-app.get('/api/tramite/vehiculo/:id', async (req, res) => {
+// Endpoints para obtener trámites individuales por ID
+
+// Obtener trámite de vehículo individual
+app.get('/api/tramites/vehiculo/:id', async (req, res) => {
   const { id } = req.params;
-  if (!id) return res.status(400).json({ error: 'Falta id' });
   try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute(
-      `SELECT id, user_id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino, estado, fecha_creacion,
-        archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion, archivo_certificado, archivo_seguro
-       FROM tramites_vehiculo WHERE id = ? LIMIT 1`,
-      [id]
+      'SELECT * FROM tramites_vehiculo WHERE id = ? OR custom_id = ?',
+      [id, id]
     );
     await conn.end();
-    if (!rows.length) return res.status(404).json({ error: 'Trámite no encontrado' });
-    const row = rows[0];
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
+    
+    const tramite = rows[0];
     res.json({
-      id: row.id,
-      userId: row.user_id,
-      patente: row.patente,
-      marca: row.marca,
-      modelo: row.modelo,
-      anio: row.anio,
-      color: row.color,
-      fechaInicio: row.fecha_inicio ? row.fecha_inicio.toISOString().split('T')[0] : '',
-      fechaTermino: row.fecha_termino ? row.fecha_termino.toISOString().split('T')[0] : '',
-      estado: row.estado,
+      id: tramite.id,
+      customId: tramite.custom_id,
+      patente: tramite.patente,
+      marca: tramite.marca,
+      modelo: tramite.modelo,
+      anio: tramite.anio,
+      color: tramite.color,
+      fechaInicio: tramite.fecha_inicio,
+      fechaTermino: tramite.fecha_termino,
+      estado: tramite.estado,
       archivos: {
-        cedula: row.archivo_cedula,
-        licencia: row.archivo_licencia,
-        revision: row.archivo_revision,
-        salida: row.archivo_salida,
-        autorizacion: row.archivo_autorizacion,
-        certificado: row.archivo_certificado,
-        seguro: row.archivo_seguro
+        cedula: tramite.archivo_cedula,
+        licencia: tramite.archivo_licencia,
+        revision: tramite.archivo_revision,
+        salida: tramite.archivo_salida,
+        autorizacion: tramite.archivo_autorizacion,
+        certificado: tramite.archivo_certificado,
+        seguro: tramite.archivo_seguro
       }
     });
   } catch (err) {
@@ -1292,228 +1295,539 @@ app.get('/api/tramite/vehiculo/:id', async (req, res) => {
   }
 });
 
-// Obtener trámite de menores por ID
-app.get('/api/tramite/menores/:id', async (req, res) => {
-  const tramiteId = req.params.id;
+// Obtener trámite de menores individual
+app.get('/api/tramites/menores/:id', async (req, res) => {
+  const { id } = req.params;
   try {
     const conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute('SELECT * FROM tramites_menores WHERE id = ?', [tramiteId]);
+    const [rows] = await conn.execute(
+      'SELECT * FROM tramites_menores WHERE id = ? OR custom_id = ?',
+      [id, id]
+    );
     await conn.end();
-    if (rows.length === 0) return res.status(404).json({ error: 'Trámite no encontrado' });
-    const row = rows[0];
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
+    
+    const tramite = rows[0];
     res.json({
-      id: row.id,
-      menorNombres: row.menor_nombres,
-      menorApellidos: row.menor_apellidos,
-      menorRut: row.menor_rut,
-      menorNacimiento: row.menor_nacimiento ? row.menor_nacimiento.toISOString().split('T')[0] : '',
-      acompNombres: row.acomp_nombres,
-      acompApellidos: row.acomp_apellidos,
-      acompRut: row.acomp_rut,
+      id: tramite.id,
+      customId: tramite.custom_id,
+      menorNombres: tramite.menor_nombres,
+      menorApellidos: tramite.menor_apellidos,
+      menorRut: tramite.menor_rut,
+      menorNacimiento: tramite.menor_nacimiento,
+      acompNombres: tramite.acomp_nombres,
+      acompApellidos: tramite.acomp_apellidos,
+      acompRut: tramite.acomp_rut,
+      estado: tramite.estado,
       archivos: {
-        identidad: row.archivo_identidad,
-        autorizacion: row.archivo_autorizacion
-      },
-      estado: row.estado
+        identidad: tramite.archivo_identidad,
+        autorizacion: tramite.archivo_autorizacion
+      }
     });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
 });
 
-// Obtener trámite de alimentos/mascotas por ID
-app.get('/api/tramite/alimentos/:id', async (req, res) => {
-  const tramiteId = req.params.id;
+// Obtener trámite de alimentos individual
+app.get('/api/tramites/alimentos/:id', async (req, res) => {
+  const { id } = req.params;
   try {
     const conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute('SELECT * FROM tramites_alimentos WHERE id = ?', [tramiteId]);
+    const [rows] = await conn.execute(
+      'SELECT * FROM tramites_alimentos WHERE id = ? OR custom_id = ?',
+      [id, id]
+    );
+    
     if (rows.length === 0) {
       await conn.end();
       return res.status(404).json({ error: 'Trámite no encontrado' });
     }
-    const row = rows[0];
-    let mascota = null;
-    if (row.tipo === 'mascota') {
-      const [docs] = await conn.execute('SELECT * FROM documentos_mascotas WHERE tramite_id = ?', [tramiteId]);
-      if (docs.length > 0) mascota = docs[0];
+    
+    const tramite = rows[0];
+    let documentosMascota = null;
+    
+    if (tramite.tipo === 'mascota') {
+      const [docs] = await conn.execute(
+        'SELECT * FROM documentos_mascotas WHERE tramite_id = ?',
+        [tramite.id]
+      );
+      if (docs.length > 0) {
+        documentosMascota = docs[0];
+      }
     }
+    
     await conn.end();
+    
     res.json({
-      id: row.id,
-      tipo: row.tipo,
-      cantidad: row.cantidad,
-      transporte: row.transporte,
-      descripcion: row.descripcion,
-      estado: row.estado,
-      mascota
+      id: tramite.id,
+      customId: tramite.custom_id,
+      tipo: tramite.tipo,
+      cantidad: tramite.cantidad,
+      transporte: tramite.transporte,
+      descripcion: tramite.descripcion,
+      estado: tramite.estado,
+      documentosMascota
     });
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor', details: err.message });
   }
 });
 
-// Endpoint para obtener resumen del dashboard del funcionario aduanero
-app.get('/api/officer/dashboard', authenticateToken, async (req, res) => {
-  // Verificar que el usuario sea funcionario aduanero o admin
-  if (req.user.role !== 'officer' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Acceso no autorizado. Solo funcionarios aduaneros pueden acceder al dashboard.' });
-  }
+// Endpoints para editar trámites
 
+// Editar trámite de vehículo
+app.put('/api/tramites/vehiculo/:id', upload.fields([
+  { name: 'cedula', maxCount: 1 },
+  { name: 'licencia', maxCount: 1 },
+  { name: 'revision', maxCount: 1 },
+  { name: 'salida', maxCount: 1 },
+  { name: 'autorizacion', maxCount: 1 },
+  { name: 'certificado', maxCount: 1 },
+  { name: 'seguro', maxCount: 1 }
+]), async (req, res) => {
+  const { id } = req.params;
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    console.log('Obteniendo datos del dashboard para funcionario aduanero...');
+    const {
+      patente, marca, modelo, anio, color,
+      fechaInicio, fechaTermino
+    } = req.body;
+
+    const conn = await mysql.createConnection(dbConfig);
     
-    // Obtener conteos por estado de todos los trámites
-    const [conteoEstados] = await connection.query(`
-      SELECT 
-        SUM(CASE WHEN estado = 'En revisión' THEN 1 ELSE 0 END) as pendientes,
-        SUM(CASE WHEN estado = 'Aprobado' THEN 1 ELSE 0 END) as aprobados,
-        SUM(CASE WHEN estado = 'Rechazado' THEN 1 ELSE 0 END) as rechazados,
-        COUNT(*) as total
-      FROM (
-        SELECT estado FROM tramites_vehiculo
-        UNION ALL
-        SELECT estado FROM tramites_menores
-        UNION ALL
-        SELECT estado FROM tramites_alimentos
-      ) AS todos_tramites
-    `);
+    // Obtener trámite actual
+    const [currentRows] = await conn.execute(
+      'SELECT * FROM tramites_vehiculo WHERE id = ? OR custom_id = ?',
+      [id, id]
+    );
     
-    // Obtener conteos por tipo de trámite
-    const [conteoVehiculos] = await connection.query('SELECT COUNT(*) as count FROM tramites_vehiculo');
-    const [conteoMenores] = await connection.query('SELECT COUNT(*) as count FROM tramites_menores');
-    const [conteoSAG] = await connection.query('SELECT COUNT(*) as count FROM tramites_alimentos');
+    if (currentRows.length === 0) {
+      await conn.end();
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
     
-    // Obtener trámites urgentes (pendientes con más de 2 días)
-    const [tramitesUrgentes] = await connection.query(`
-      SELECT 'vehiculo' as tipo, custom_id, patente as detalle, 
-             DATEDIFF(NOW(), fecha_creacion) as dias_pendiente,
-             DATE_FORMAT(fecha_inicio, '%d/%m/%Y') as fecha_vence
-      FROM tramites_vehiculo 
-      WHERE estado = 'En revisión' AND DATEDIFF(NOW(), fecha_creacion) >= 2
-      UNION ALL
-      SELECT 'menor' as tipo, custom_id, 
-             CONCAT(menor_nombres, ' ', menor_apellidos) as detalle,
-             DATEDIFF(NOW(), fecha_creacion) as dias_pendiente,
-             DATE_FORMAT(fecha_creacion, '%d/%m/%Y') as fecha_vence
-      FROM tramites_menores 
-      WHERE estado = 'En revisión' AND DATEDIFF(NOW(), fecha_creacion) >= 2
-      UNION ALL
-      SELECT CONCAT('sag-', tipo) as tipo, custom_id, descripcion as detalle,
-             DATEDIFF(NOW(), fecha_creacion) as dias_pendiente,
-             DATE_FORMAT(fecha_creacion, '%d/%m/%Y') as fecha_vence
-      FROM tramites_alimentos 
-      WHERE estado = 'En revisión' AND DATEDIFF(NOW(), fecha_creacion) >= 2
-      ORDER BY dias_pendiente DESC
-      LIMIT 10
-    `);
+    const current = currentRows[0];
+    const files = req.files;
     
-    // Obtener actividad reciente de cambios de estado (últimos 5)
-    const [actividadReciente] = await connection.query(`
-      SELECT 'vehiculo' as tipo, custom_id, estado, fecha_creacion, 
-             patente as info_adicional
-      FROM tramites_vehiculo
-      WHERE estado IN ('Aprobado', 'Rechazado')
-      UNION ALL
-      SELECT 'menor' as tipo, custom_id, estado, fecha_creacion,
-             CONCAT(menor_nombres, ' ', menor_apellidos) as info_adicional
-      FROM tramites_menores
-      WHERE estado IN ('Aprobado', 'Rechazado')
-      UNION ALL
-      SELECT CONCAT('sag-', tipo) as tipo, custom_id, estado, fecha_creacion,
-             descripcion as info_adicional
-      FROM tramites_alimentos
-      WHERE estado IN ('Aprobado', 'Rechazado')
-      ORDER BY fecha_creacion DESC
-      LIMIT 5
-    `);
-    
-    await connection.end();
-    
-    // Procesar trámites urgentes para el formato requerido
-    const tramitesUrgentesFormateados = {
-      'Alta prioridad': [],
-      'Media prioridad': []
-    };
-    
-    tramitesUrgentes.forEach(tramite => {
-      let descripcion = '';
-      let prioridad = tramite.dias_pendiente >= 3 ? 'Alta prioridad' : 'Media prioridad';
-      
-      switch(tramite.tipo) {
-        case 'vehiculo':
-          if (tramite.detalle && tramite.detalle.includes('DIP')) {
-            descripcion = `#${tramite.custom_id}: Vehículo con placas diplomáticas (vence ${tramite.fecha_vence}).`;
-            prioridad = 'Alta prioridad';
-          } else {
-            descripcion = `#${tramite.custom_id}: Vehículo pendiente de revisión (${tramite.dias_pendiente} días).`;
-          }
-          break;
-        case 'menor':
-          if (tramite.dias_pendiente >= 2) {
-            descripcion = `#${tramite.custom_id}: Menor sin autorización notarial (en espera ${tramite.dias_pendiente * 24}h).`;
-            prioridad = 'Alta prioridad';
-          } else {
-            descripcion = `#${tramite.custom_id}: Documentación menor pendiente (${tramite.dias_pendiente} días).`;
-          }
-          break;
-        default:
-          descripcion = `#${tramite.custom_id}: Trámite SAG pendiente (${tramite.dias_pendiente} días).`;
-          break;
-      }
-      
-      tramitesUrgentesFormateados[prioridad].push(descripcion);
+    // Usar archivos nuevos si se subieron, sino mantener los existentes
+    const archivoCedula = files.cedula ? files.cedula[0].filename : current.archivo_cedula;
+    const archivoLicencia = files.licencia ? files.licencia[0].filename : current.archivo_licencia;
+    const archivoRevision = files.revision ? files.revision[0].filename : current.archivo_revision;
+    const archivoSalida = files.salida ? files.salida[0].filename : current.archivo_salida;
+    const archivoAutorizacion = files.autorizacion ? files.autorizacion[0].filename : current.archivo_autorizacion;
+    const archivoCertificado = files.certificado ? files.certificado[0].filename : current.archivo_certificado;
+    const archivoSeguro = files.seguro ? files.seguro[0].filename : current.archivo_seguro;
+
+    // Actualizar trámite
+    await conn.execute(`
+      UPDATE tramites_vehiculo SET
+      patente = ?, marca = ?, modelo = ?, anio = ?, color = ?,
+      fecha_inicio = ?, fecha_termino = ?,
+      archivo_cedula = ?, archivo_licencia = ?, archivo_revision = ?,
+      archivo_salida = ?, archivo_autorizacion = ?, archivo_certificado = ?,
+      archivo_seguro = ?
+      WHERE id = ?
+    `, [
+      patente, marca, modelo, anio, color, fechaInicio, fechaTermino,
+      archivoCedula, archivoLicencia, archivoRevision, archivoSalida,
+      archivoAutorizacion, archivoCertificado, archivoSeguro, current.id
+    ]);
+
+    await conn.end();
+
+    res.json({
+      success: true,
+      message: 'Trámite actualizado exitosamente'
     });
-    
-    // Formatear respuesta completa
-    const dashboard = {
-      resumen: {
-        pendientes: conteoEstados[0].pendientes || 0,
-        aprobados: conteoEstados[0].aprobados || 0,
-        rechazados: conteoEstados[0].rechazados || 0,
-        total: conteoEstados[0].total || 0
-      },
-      distribucion: {
-        vehiculos: conteoVehiculos[0].count || 0,
-        menores: conteoMenores[0].count || 0,
-        sag: conteoSAG[0].count || 0
-      },
-      tramitesUrgentes: [
-        {
-          prioridad: 'Alta prioridad',
-          items: tramitesUrgentesFormateados['Alta prioridad']
-        },
-        {
-          prioridad: 'Media prioridad', 
-          items: tramitesUrgentesFormateados['Media prioridad']
-        }
-      ],
-      actividadReciente: actividadReciente.map(item => {
-        let tipoTexto = '';
-        switch(item.tipo) {
-          case 'vehiculo': tipoTexto = 'Vehículo temporal'; break;
-          case 'menor': tipoTexto = 'Documentación menor'; break;
-          case 'sag-vegetal': tipoTexto = 'SAG Vegetal'; break;
-          case 'sag-animal': tipoTexto = 'SAG Animal'; break;
-          case 'sag-mascota': tipoTexto = 'SAG Mascota'; break;
-          default: tipoTexto = 'Trámite'; break;
-        }
-        
-        return {
-          id: item.custom_id,
-          tipo: tipoTexto,
-          estado: item.estado,
-          fecha: format(new Date(item.fecha_creacion), 'dd/MM/yyyy'),
-          detalle: item.info_adicional
-        };
-      })
-    };
-    
-    console.log('Dashboard data:', dashboard);
-    res.json(dashboard);
-    
+
   } catch (err) {
-    console.error('Error al obtener dashboard del funcionario:', err);
-    res.status(500).json({ error: 'Error al consultar el dashboard', details: err.message });
+    console.error('Error al actualizar trámite de vehículo:', err);
+    res.status(500).json({ error: 'Error al actualizar el trámite', details: err.message });
+  }
+});
+
+// Editar trámite de menores
+app.put('/api/tramites/menores/:id', upload.fields([
+  { name: 'identidad', maxCount: 1 },
+  { name: 'autorizacion', maxCount: 1 }
+]), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const {
+      menorNombres, menorApellidos, menorRut, menorNacimiento,
+      acompNombres, acompApellidos, acompRut
+    } = req.body;
+
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Obtener trámite actual
+    const [currentRows] = await conn.execute(
+      'SELECT * FROM tramites_menores WHERE id = ? OR custom_id = ?',
+      [id, id]
+    );
+    
+    if (currentRows.length === 0) {
+      await conn.end();
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
+    
+    const current = currentRows[0];
+    const files = req.files;
+    
+    // Usar archivos nuevos si se subieron, sino mantener los existentes
+    const archivoIdentidad = files.identidad ? files.identidad[0].filename : current.archivo_identidad;
+    const archivoAutorizacion = files.autorizacion ? files.autorizacion[0].filename : current.archivo_autorizacion;
+
+    // Actualizar trámite
+    await conn.execute(`
+      UPDATE tramites_menores SET
+      menor_nombres = ?, menor_apellidos = ?, menor_rut = ?, menor_nacimiento = ?,
+      acomp_nombres = ?, acomp_apellidos = ?, acomp_rut = ?,
+      archivo_identidad = ?, archivo_autorizacion = ?
+      WHERE id = ?
+    `, [
+      menorNombres, menorApellidos, menorRut, menorNacimiento,
+      acompNombres, acompApellidos, acompRut,
+      archivoIdentidad, archivoAutorizacion, current.id
+    ]);
+
+    await conn.end();
+
+    res.json({
+      success: true,
+      message: 'Trámite actualizado exitosamente'
+    });
+
+  } catch (err) {
+    console.error('Error al actualizar trámite de menores:', err);
+    res.status(500).json({ error: 'Error al actualizar el trámite', details: err.message });
+  }
+});
+
+// Editar trámite de alimentos
+app.put('/api/tramites/alimentos/:id', upload.fields([
+  { name: 'registro', maxCount: 1 },
+  { name: 'vacunas', maxCount: 1 },
+  { name: 'desparasitacion', maxCount: 1 },
+  { name: 'zoo', maxCount: 1 }
+]), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const {
+      tipo, cantidad, transporte, descripcion, tipoMascota
+    } = req.body;
+
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Obtener trámite actual
+    const [currentRows] = await conn.execute(
+      'SELECT * FROM tramites_alimentos WHERE id = ? OR custom_id = ?',
+      [id, id]
+    );
+    
+    if (currentRows.length === 0) {
+      await conn.end();
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
+    
+    const current = currentRows[0];
+
+    // Actualizar trámite principal
+    await conn.execute(`
+      UPDATE tramites_alimentos SET
+      tipo = ?, cantidad = ?, transporte = ?, descripcion = ?
+      WHERE id = ?
+    `, [tipo, cantidad, transporte, descripcion, current.id]);
+
+    // Si es mascota, actualizar documentos adicionales
+    if (tipo === 'mascota' && req.files) {
+      const files = req.files;
+      
+      // Verificar si ya existen documentos de mascota
+      const [existingDocs] = await conn.execute(
+        'SELECT * FROM documentos_mascotas WHERE tramite_id = ?',
+        [current.id]
+      );
+      
+      if (existingDocs.length > 0) {
+        // Actualizar documentos existentes
+        const existing = existingDocs[0];
+        const archivoRegistro = files.registro ? files.registro[0].filename : existing.archivo_registro;
+        const archivoVacunas = files.vacunas ? files.vacunas[0].filename : existing.archivo_vacunas;
+        const archivoDesparasitacion = files.desparasitacion ? files.desparasitacion[0].filename : existing.archivo_desparasitacion;
+        const archivoZoo = files.zoo ? files.zoo[0].filename : existing.archivo_zoo;
+        
+        await conn.execute(`
+          UPDATE documentos_mascotas SET
+          tipo_mascota = ?, archivo_registro = ?, archivo_vacunas = ?,
+          archivo_desparasitacion = ?, archivo_zoo = ?
+          WHERE tramite_id = ?
+        `, [
+          tipoMascota || existing.tipo_mascota,
+          archivoRegistro, archivoVacunas, archivoDesparasitacion, archivoZoo,
+          current.id
+        ]);
+      } else {
+        // Crear nuevos documentos de mascota
+        const archivoRegistro = files.registro ? files.registro[0].filename : null;
+        const archivoVacunas = files.vacunas ? files.vacunas[0].filename : null;
+        const archivoDesparasitacion = files.desparasitacion ? files.desparasitacion[0].filename : null;
+        const archivoZoo = files.zoo ? files.zoo[0].filename : null;
+        
+        if (archivoRegistro || archivoVacunas || archivoDesparasitacion || archivoZoo) {
+          await conn.execute(`
+            INSERT INTO documentos_mascotas 
+            (tramite_id, tipo_mascota, archivo_registro, archivo_vacunas, archivo_desparasitacion, archivo_zoo)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            current.id, tipoMascota || 'No especificado',
+            archivoRegistro, archivoVacunas, archivoDesparasitacion, archivoZoo
+          ]);
+        }
+      }
+    }
+
+    await conn.end();
+
+    res.json({
+      success: true,
+      message: 'Trámite actualizado exitosamente'
+    });
+
+  } catch (err) {
+    console.error('Error al actualizar trámite de alimentos:', err);
+    res.status(500).json({ error: 'Error al actualizar el trámite', details: err.message });
+  }
+});
+
+// Endpoint para crear nuevo trámite de vehículo temporal
+app.post('/api/tramites/vehiculo', upload.fields([
+  { name: 'cedula', maxCount: 1 },
+  { name: 'licencia', maxCount: 1 },
+  { name: 'revision', maxCount: 1 },
+  { name: 'salida', maxCount: 1 },
+  { name: 'autorizacion', maxCount: 1 },
+  { name: 'certificado', maxCount: 1 },
+  { name: 'seguro', maxCount: 1 }
+]), async (req, res) => {
+  console.log('📝 Creando nuevo trámite de vehículo...');
+  console.log('Datos recibidos:', req.body);
+  console.log('Archivos recibidos:', Object.keys(req.files || {}));
+  
+  try {
+    const {
+      userId, patente, marca, modelo, anio, color,
+      fechaInicio, fechaTermino
+    } = req.body;
+
+    if (!userId || !patente || !marca || !modelo || !anio || !color || !fechaInicio || !fechaTermino) {
+      console.log('❌ Faltan datos obligatorios');
+      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Generar ID personalizado
+    const [seqResult] = await conn.execute('SELECT last_number FROM tramite_sequences WHERE tipo = "vehiculo"');
+    const nextNumber = seqResult[0].last_number + 1;
+    const customId = `VEH-${nextNumber.toString().padStart(4, '0')}`;
+    
+    // Actualizar secuencia
+    await conn.execute('UPDATE tramite_sequences SET last_number = ? WHERE tipo = "vehiculo"', [nextNumber]);
+
+    // Obtener nombres de archivos
+    const files = req.files;
+    const archivoCedula = files.cedula ? files.cedula[0].filename : null;
+    const archivoLicencia = files.licencia ? files.licencia[0].filename : null;
+    const archivoRevision = files.revision ? files.revision[0].filename : null;
+    const archivoSalida = files.salida ? files.salida[0].filename : null;
+    const archivoAutorizacion = files.autorizacion ? files.autorizacion[0].filename : null;
+    const archivoCertificado = files.certificado ? files.certificado[0].filename : null;
+    const archivoSeguro = files.seguro ? files.seguro[0].filename : null;
+
+    console.log('✅ Insertando trámite con ID:', customId);
+
+    // Insertar trámite
+    const [result] = await conn.execute(`
+      INSERT INTO tramites_vehiculo 
+      (user_id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino,
+       archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, 
+       archivo_autorizacion, archivo_certificado, archivo_seguro, custom_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      userId, patente, marca, modelo, anio, color, fechaInicio, fechaTermino,
+      archivoCedula, archivoLicencia, archivoRevision, archivoSalida,
+      archivoAutorizacion, archivoCertificado, archivoSeguro, customId
+    ]);
+
+    await conn.end();
+
+    console.log('🎉 Trámite creado exitosamente');
+    res.json({
+      success: true,
+      message: 'Trámite de vehículo creado exitosamente',
+      tramiteId: result.insertId,
+      customId: customId
+    });
+
+  } catch (err) {
+    console.error('❌ Error al crear trámite de vehículo:', err);
+    res.status(500).json({ error: 'Error al crear el trámite', details: err.message });
+  }
+});
+
+// Endpoint para crear nuevo trámite de menores
+app.post('/api/tramites/menores', upload.fields([
+  { name: 'identidad', maxCount: 1 },
+  { name: 'autorizacion', maxCount: 1 }
+]), async (req, res) => {
+  console.log('📝 Creando nuevo trámite de menores...');
+  console.log('Datos recibidos:', req.body);
+  console.log('Archivos recibidos:', Object.keys(req.files || {}));
+  
+  try {
+    const {
+      userId, menorNombres, menorApellidos, menorRut, menorNacimiento,
+      acompNombres, acompApellidos, acompRut
+    } = req.body;
+
+    if (!userId || !menorNombres || !menorApellidos || !menorRut || !menorNacimiento ||
+        !acompNombres || !acompApellidos || !acompRut) {
+      console.log('❌ Faltan datos obligatorios');
+      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Generar ID personalizado
+    const [seqResult] = await conn.execute('SELECT last_number FROM tramite_sequences WHERE tipo = "menores"');
+    const nextNumber = seqResult[0].last_number + 1;
+    const customId = `MEN-${nextNumber.toString().padStart(4, '0')}`;
+    
+    // Actualizar secuencia
+    await conn.execute('UPDATE tramite_sequences SET last_number = ? WHERE tipo = "menores"', [nextNumber]);
+
+    // Obtener nombres de archivos
+    const files = req.files;
+    const archivoIdentidad = files.identidad ? files.identidad[0].filename : null;
+    const archivoAutorizacion = files.autorizacion ? files.autorizacion[0].filename : null;
+
+    console.log('✅ Insertando trámite con ID:', customId);
+
+    // Insertar trámite
+    const [result] = await conn.execute(`
+      INSERT INTO tramites_menores 
+      (user_id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento,
+       acomp_nombres, acomp_apellidos, acomp_rut, archivo_identidad, archivo_autorizacion, custom_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      userId, menorNombres, menorApellidos, menorRut, menorNacimiento,
+      acompNombres, acompApellidos, acompRut, archivoIdentidad, archivoAutorizacion, customId
+    ]);
+
+    await conn.end();
+
+    console.log('🎉 Trámite creado exitosamente');
+    res.json({
+      success: true,
+      message: 'Trámite de menores creado exitosamente',
+      tramiteId: result.insertId,
+      customId: customId
+    });
+
+  } catch (err) {
+    console.error('❌ Error al crear trámite de menores:', err);
+    res.status(500).json({ error: 'Error al crear el trámite', details: err.message });
+  }
+});
+
+// Endpoint para crear nuevo trámite de alimentos/mascotas
+app.post('/api/tramites/alimentos', upload.fields([
+  { name: 'registro', maxCount: 1 },
+  { name: 'vacunas', maxCount: 1 },
+  { name: 'desparasitacion', maxCount: 1 },
+  { name: 'zoo', maxCount: 1 }
+]), async (req, res) => {
+  console.log('📝 Creando nuevo trámite de alimentos/mascotas...');
+  console.log('Datos recibidos:', req.body);
+  console.log('Archivos recibidos:', Object.keys(req.files || {}));
+  
+  try {
+    const {
+      userId, tipo, cantidad, transporte, descripcion,
+      tipoMascota
+    } = req.body;
+
+    if (!userId || !tipo || !cantidad || !transporte || !descripcion) {
+      console.log('❌ Faltan datos obligatorios');
+      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+
+    const conn = await mysql.createConnection(dbConfig);
+    
+    // Generar ID personalizado basado en el tipo
+    let seqTipo;
+    switch(tipo) {
+      case 'vegetal': seqTipo = 'vegetal'; break;
+      case 'animal': seqTipo = 'animal'; break;
+      case 'mascota': seqTipo = 'mascota'; break;
+      default: seqTipo = 'animal';
+    }
+    
+    const [seqResult] = await conn.execute('SELECT last_number FROM tramite_sequences WHERE tipo = ?', [seqTipo]);
+    const nextNumber = seqResult[0].last_number + 1;
+    const customId = `${seqTipo.substring(0, 3).toUpperCase()}-${nextNumber.toString().padStart(4, '0')}`;
+    
+    // Actualizar secuencia
+    await conn.execute('UPDATE tramite_sequences SET last_number = ? WHERE tipo = ?', [nextNumber, seqTipo]);
+
+    console.log('✅ Insertando trámite con ID:', customId);
+
+    // Insertar trámite
+    const [result] = await conn.execute(`
+      INSERT INTO tramites_alimentos 
+      (user_id, tipo, cantidad, transporte, descripcion, custom_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [
+      userId, tipo, cantidad, transporte, descripcion, customId
+    ]);
+
+    // Si es mascota, insertar documentos adicionales
+    if (tipo === 'mascota' && req.files) {
+      const files = req.files;
+      const archivoRegistro = files.registro ? files.registro[0].filename : null;
+      const archivoVacunas = files.vacunas ? files.vacunas[0].filename : null;
+      const archivoDesparasitacion = files.desparasitacion ? files.desparasitacion[0].filename : null;
+      const archivoZoo = files.zoo ? files.zoo[0].filename : null;
+
+      if (archivoRegistro || archivoVacunas || archivoDesparasitacion || archivoZoo) {
+        console.log('📎 Agregando documentos de mascota...');
+        await conn.execute(`
+          INSERT INTO documentos_mascotas 
+          (tramite_id, tipo_mascota, archivo_registro, archivo_vacunas, archivo_desparasitacion, archivo_zoo)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+          result.insertId, tipoMascota || 'No especificado', 
+          archivoRegistro, archivoVacunas, archivoDesparasitacion, archivoZoo
+        ]);
+      }
+    }
+
+    await conn.end();
+
+    console.log('🎉 Trámite creado exitosamente');
+    res.json({
+      success: true,
+      message: 'Trámite de alimentos/mascotas creado exitosamente',
+      tramiteId: result.insertId,
+      customId: customId
+    });
+
+  } catch (err) {
+    console.error('❌ Error al crear trámite de alimentos:', err);
+    res.status(500).json({ error: 'Error al crear el trámite', details: err.message });
   }
 });

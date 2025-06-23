@@ -47,7 +47,7 @@ export async function crearTramiteVehiculo(form, userId) {
   formData.append('certificado', form.docs.certificado);
   formData.append('seguro', form.docs.seguro);
 
-  const response = await fetch('http://localhost:4000/api/tramite/vehiculo', {
+  const response = await fetch('http://localhost:4000/api/tramites/vehiculo', {
     method: 'POST',
     body: formData
   });
@@ -90,7 +90,7 @@ export async function crearTramiteMenores(form, userId) {
   formData.append('docIdentidad', form.docIdentidad);
   formData.append('docAutorizacion', form.docAutorizacion);
 
-  const response = await fetch('http://localhost:4000/api/tramite/menores', {
+  const response = await fetch('http://localhost:4000/api/tramites/menores', {
     method: 'POST',
     body: formData
   });
@@ -135,7 +135,7 @@ export async function crearTramiteAlimentos(form, userId, docsMascota, tipoMasco
     formData.append('cantidad', form.cantidad);
     formData.append('descripcion', form.descripcion);
   }
-  const response = await fetch('http://localhost:4000/api/tramite/alimentos', {
+  const response = await fetch('http://localhost:4000/api/tramites/alimentos', {
     method: 'POST',
     body: formData
   });
@@ -166,7 +166,7 @@ export async function getTramitesAlimentos(userId) {
 }
 
 export async function getTramiteVehiculoById(id) {
-  const response = await fetch(`http://localhost:4000/api/tramite/vehiculo/${id}`);
+  const response = await fetch(`http://localhost:4000/api/tramites/vehiculo/${id}`);
   let data;
   try {
     data = await response.json();
@@ -197,7 +197,7 @@ export async function editarTramiteVehiculo(form, userId, tramiteId) {
   if (form.docs.autorizacion) formData.append('autorizacion', form.docs.autorizacion);
   if (form.docs.certificado) formData.append('certificado', form.docs.certificado);
   if (form.docs.seguro) formData.append('seguro', form.docs.seguro);
-  const response = await fetch(`http://localhost:4000/api/tramite/vehiculo/${tramiteId}`, {
+  const response = await fetch(`http://localhost:4000/api/tramites/vehiculo/${tramiteId}`, {
     method: 'PUT',
     body: formData
   });
@@ -214,7 +214,7 @@ export async function editarTramiteVehiculo(form, userId, tramiteId) {
 }
 
 export async function getTramiteMenoresById(id) {
-  const response = await fetch(`http://localhost:4000/api/tramite/menores/${id}`);
+  const response = await fetch(`http://localhost:4000/api/tramites/menores/${id}`);
   let data;
   try {
     data = await response.json();
@@ -239,7 +239,7 @@ export async function editarTramiteMenores(form, userId, tramiteId) {
   formData.append('userId', userId);
   if (form.docs.docIdentidad) formData.append('docIdentidad', form.docs.docIdentidad);
   if (form.docs.docAutorizacion) formData.append('docAutorizacion', form.docs.docAutorizacion);
-  const response = await fetch(`http://localhost:4000/api/tramite/menores/${tramiteId}`, {
+  const response = await fetch(`http://localhost:4000/api/tramites/menores/${tramiteId}`, {
     method: 'PUT',
     body: formData
   });
@@ -256,7 +256,7 @@ export async function editarTramiteMenores(form, userId, tramiteId) {
 }
 
 export async function getTramiteAlimentosById(id) {
-  const response = await fetch(`http://localhost:4000/api/tramite/alimentos/${id}`);
+  const response = await fetch(`http://localhost:4000/api/tramites/alimentos/${id}`);
   let data;
   try {
     data = await response.json();
@@ -284,7 +284,7 @@ export async function editarTramiteAlimentos(form, userId, tramiteId, docsMascot
     formData.append('cantidad', form.cantidad);
     formData.append('descripcion', form.descripcion);
   }
-  const response = await fetch(`http://localhost:4000/api/tramite/alimentos/${tramiteId}`, {
+  const response = await fetch(`http://localhost:4000/api/tramites/alimentos/${tramiteId}`, {
     method: 'PUT',
     body: formData
   });

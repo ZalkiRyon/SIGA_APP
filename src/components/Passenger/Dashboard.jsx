@@ -66,6 +66,20 @@ export default function PassengerDashboard({ user }) {
     }
     if (user?.id) fetchTramites();
   }, [user]);
+  // Función helper para obtener el color del estado
+  const getEstadoColor = (estado) => {
+    switch (estado) {
+      case 'Aprobado': return '#b6e7a0';
+      case 'En revisión': return '#ffe082';
+      case 'Rechazado': return '#ffb3b3';
+      default: return 'transparent';
+    }
+  };
+
+  // Función helper para obtener el texto de la acción
+  const getAccionTexto = (estado) => {
+    return estado === 'Aprobado' ? 'Descargar' : 'Ver detalles';
+  };
 
   // Datos simulados para la UI
   const notificaciones = [
@@ -175,17 +189,35 @@ export default function PassengerDashboard({ user }) {
                   <th style={{ padding: '0.6rem', textAlign: 'left', fontWeight: 600 }}>Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                {tramitesRecientes.length === 0 ? (
+              <tbody>                {tramitesRecientes.length === 0 ? (
                   <tr><td colSpan={4} style={{ textAlign: 'center', color: '#888' }}>No hay trámites recientes.</td></tr>
                 ) : (
                   tramitesRecientes.map((t, i) => (
                     <tr key={t.id || i} style={{ borderBlockEnd: '1px solid #ccc' }}>
                       <td style={{ padding: '0.6rem' }}>{t.fecha || '---'}</td>
                       <td style={{ padding: '0.6rem' }}>{t.tipo}</td>
-                      <td style={{ padding: '0.6rem' }}>{t.estado}</td>
+                      <td style={{ 
+                        padding: '0.6rem', 
+                        backgroundColor: getEstadoColor(t.estado),
+                        borderRadius: '4px',
+                        fontWeight: 500,
+                        textAlign: 'center'
+                      }}>
+                        {t.estado}
+                      </td>
                       <td style={{ padding: '0.6rem' }}>
-                        <button style={{ color: '#1976d2', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => navigate('/passenger/mis-tramites')}>Ver detalles</button>
+                        <button 
+                          style={{ 
+                            color: '#1976d2', 
+                            textDecoration: 'underline', 
+                            background: 'none', 
+                            border: 'none', 
+                            cursor: 'pointer' 
+                          }} 
+                          onClick={() => navigate('/passenger/mis-tramites')}
+                        >
+                          {getAccionTexto(t.estado)}
+                        </button>
                       </td>
                     </tr>
                   ))
