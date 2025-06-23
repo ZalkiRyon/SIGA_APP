@@ -58,6 +58,35 @@ SIGA Aduanas es una aplicación web integral diseñada para gestionar trámites 
 
 ## 📦 Instalación y Configuración
 
+### 🚀 Instalación Automática (Recomendada)
+
+Para una instalación rápida y automática, utiliza los scripts incluidos:
+
+#### Windows
+```bash
+# Opción 1 - Archivo Batch
+.\setup.bat
+
+# Opción 2 - PowerShell (recomendado)
+.\setup.ps1
+```
+
+#### macOS / Linux
+```bash
+# Hacer ejecutable y ejecutar
+chmod +x setup.sh
+./setup.sh
+```
+
+Los scripts automáticamente:
+- ✅ Verifican las dependencias del sistema
+- ✅ Instalan todas las dependencias de npm
+- ✅ Crean scripts de ejecución
+- ✅ Configuran archivos de configuración
+- ✅ Proporcionan instrucciones para MySQL
+
+### 📋 Instalación Manual
+
 ### Requisitos Previos
 - **Node.js** (versión 18 o superior)
 - **MySQL** (versión 8.0 o superior)
@@ -107,6 +136,31 @@ El backend está configurado para conectarse a MySQL con los siguientes parámet
 Si necesitas cambiar la configuración, edita el archivo `backend.cjs` en la sección `dbConfig`.
 
 ## 🚀 Ejecución del Proyecto
+
+### 🎯 Ejecución Automática (Después de usar scripts de instalación)
+
+#### Windows
+```bash
+# Ejecutar aplicación completa
+.\start_full.bat         # Batch
+.\start_full.ps1         # PowerShell
+
+# Ejecutar servicios por separado
+.\start_backend.bat      # Solo backend
+.\start_frontend.bat     # Solo frontend
+```
+
+#### macOS / Linux
+```bash
+# Ejecutar aplicación completa
+./start_full.sh
+
+# Ejecutar servicios por separado
+./start_backend.sh       # Solo backend
+./start_frontend.sh      # Solo frontend
+```
+
+### 🔧 Ejecución Manual
 
 ### Modo Desarrollo
 
@@ -171,7 +225,15 @@ npm run preview
 
 ```
 SIGA_APP/
-├── backend.cjs                 # Servidor backend de Express
+├── setup.bat                  # Script de instalación Windows (Batch)
+├── setup.ps1                  # Script de instalación Windows (PowerShell)
+├── setup.sh                   # Script de instalación macOS/Linux
+├── start_backend.*            # Scripts para ejecutar solo backend
+├── start_frontend.*           # Scripts para ejecutar solo frontend
+├── start_full.*               # Scripts para ejecutar ambos servicios
+├── INSTALACION.md             # Guía detallada de instalación
+├── db_config.txt              # Configuración de base de datos (generado)
+├── backend.cjs                # Servidor backend de Express
 ├── package.json               # Dependencias y scripts
 ├── siga_app.sql               # Esquema y datos de la base de datos
 ├── vite.config.js             # Configuración de Vite
