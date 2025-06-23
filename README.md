@@ -1,12 +1,240 @@
-# React + Vite
+# SIGA Aduanas - Sistema Integral de Gestión Aduanera
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 📋 Descripción del Proyecto
 
-Currently, two official plugins are available:
+SIGA Aduanas es una aplicación web integral diseñada para gestionar trámites aduaneros de manera eficiente y moderna. El sistema permite a pasajeros, funcionarios aduaneros y administradores realizar y supervisar diversos tipos de trámites relacionados con el cruce de fronteras.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🎯 Funcionalidades Principales
 
-## Expanding the ESLint configuration
+#### Para Pasajeros/Turistas:
+- **Gestión de Trámites de Vehículo Temporal**: Solicitud de permisos para ingresar vehículos al país temporalmente
+- **Documentación para Menores de Edad**: Tramitación de permisos para viaje de menores
+- **Declaración SAG**: Gestión de declaraciones para productos:
+  - Vegetales y productos alimenticios
+  - Productos de origen animal
+  - Mascotas y animales de compañía
+- **Dashboard Personal**: Visualización y seguimiento de todos los trámites
+- **Edición de Trámites**: Modificación de trámites en estado "En revisión"
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+#### Para Funcionarios Aduaneros:
+- **Validación de Trámites**: Revisión y procesamiento de solicitudes
+- **Dashboard Operativo**: Resumen de actividad y trámites urgentes
+- **Gestión de Estados**: Aprobación y rechazo de trámites con motivos
+- **Sistema de Alertas**: Notificaciones de trámites pendientes
+- **Reportes**: Generación de estadísticas y reportes de gestión
+- **Filtros Avanzados**: Búsqueda por tipo, estado y fechas
+
+#### Para Administradores:
+- **Gestión de Usuarios**: Administración completa de cuentas de usuario
+- **Historial de Actividad**: Monitoreo de acciones del sistema
+- **Gestión de Incidencias**: Seguimiento de problemas y errores
+- **Configuración Global**: Ajustes de seguridad y sistema
+
+## 🛠️ Tecnologías Utilizadas
+
+### Frontend
+- **React 19.1.0** - Biblioteca principal de UI
+- **React Router DOM 6.30.1** - Enrutamiento de aplicación
+- **Vite 6.3.5** - Herramienta de construcción y desarrollo
+- **CSS3** - Estilos personalizados
+- **JavaScript (ES6+)** - Lenguaje principal
+
+### Backend
+- **Node.js** - Entorno de ejecución
+- **Express 5.1.0** - Framework web
+- **MySQL2 3.14.1** - Conexión a base de datos
+- **JWT (jsonwebtoken 9.0.2)** - Autenticación y autorización
+- **Multer 2.0.1** - Manejo de archivos subidos
+- **CORS 2.8.5** - Configuración de CORS
+- **BCrypt 6.0.0** - Encriptación de contraseñas
+- **date-fns** - Manipulación de fechas
+
+### Base de Datos
+- **MySQL** - Sistema de gestión de base de datos relacional
+
+### Herramientas de Desarrollo
+- **ESLint 9.25.0** - Linter de código
+- **Vite Plugin React** - Integración React con Vite
+
+## 📦 Instalación y Configuración
+
+### Requisitos Previos
+- **Node.js** (versión 18 o superior)
+- **MySQL** (versión 8.0 o superior)
+- **Git** (para clonar el repositorio)
+
+### 1. Clonar el Repositorio
+```bash
+git clone [URL_DEL_REPOSITORIO]
+cd SIGA_APP
+```
+
+### 2. Instalación de Dependencias
+```bash
+# Instalar todas las dependencias de frontend y backend
+npm install
+```
+
+### 3. Configuración de la Base de Datos
+
+#### Instalar MySQL (si no está instalado)
+```bash
+# En Windows con Chocolatey
+choco install mysql
+
+# En macOS con Homebrew
+brew install mysql
+
+# En Ubuntu/Debian
+sudo apt-get install mysql-server
+```
+
+#### Configurar la Base de Datos
+1. Iniciar el servicio de MySQL
+2. Crear la base de datos ejecutando el archivo SQL:
+```bash
+mysql -u root -p < siga_app.sql
+```
+
+### 4. Configuración del Backend
+El backend está configurado para conectarse a MySQL con los siguientes parámetros por defecto:
+- **Host**: localhost
+- **Usuario**: root
+- **Contraseña**: (vacía)
+- **Base de datos**: siga_app
+- **Puerto**: 3306
+
+Si necesitas cambiar la configuración, edita el archivo `backend.cjs` en la sección `dbConfig`.
+
+## 🚀 Ejecución del Proyecto
+
+### Modo Desarrollo
+
+#### Opción 1: Ejecutar Frontend y Backend por Separado
+```bash
+# Terminal 1 - Backend (Puerto 4000)
+npm run backend
+
+# Terminal 2 - Frontend (Puerto 5173)
+npm run dev
+```
+
+#### Opción 2: Comandos Individuales
+```bash
+# Solo Frontend
+npm run dev
+
+# Solo Backend
+node backend.cjs
+```
+
+### Modo Producción
+```bash
+# Construir la aplicación
+npm run build
+
+# Previsualizar la construcción
+npm run preview
+```
+
+## 🔧 Scripts Disponibles
+
+- `npm run dev` - Inicia el servidor de desarrollo de Vite
+- `npm run build` - Construye la aplicación para producción
+- `npm run preview` - Previsualiza la construcción de producción
+- `npm run lint` - Ejecuta ESLint para verificar el código
+- `npm run backend` - Inicia el servidor backend
+
+## 🌐 URLs de Acceso
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:4000
+
+## 👥 Usuarios de Prueba
+
+### Administradores
+- **Email**: admin@siga.cl | **Contraseña**: admin123
+- **Email**: admin2@siga.cl | **Contraseña**: admin456
+
+### Funcionarios Aduaneros
+- **Email**: funcionario@siga.cl | **Contraseña**: funcionario123
+- **Email**: funcionario2@siga.cl | **Contraseña**: func456
+- **Email**: funcionario3@siga.cl | **Contraseña**: func789
+
+### Pasajeros/Turistas
+- **Email**: pasajero@siga.cl | **Contraseña**: pasajero123
+- **Email**: juan.perez@gmail.com | **Contraseña**: pass123
+- **Email**: carmen.silva@hotmail.com | **Contraseña**: pass456
+- **Email**: roberto.muñoz@outlook.com | **Contraseña**: pass789
+
+## 📁 Estructura del Proyecto
+
+```
+SIGA_APP/
+├── backend.cjs                 # Servidor backend de Express
+├── package.json               # Dependencias y scripts
+├── siga_app.sql               # Esquema y datos de la base de datos
+├── vite.config.js             # Configuración de Vite
+├── index.html                 # Punto de entrada HTML
+├── src/
+│   ├── App.jsx                # Componente principal
+│   ├── main.jsx              # Punto de entrada React
+│   ├── components/           # Componentes organizados por rol
+│   │   ├── Admin/           # Componentes de administrador
+│   │   ├── Officer/         # Componentes de funcionario aduanero
+│   │   ├── Passenger/       # Componentes de pasajero
+│   │   ├── Auth/           # Componentes de autenticación
+│   │   └── Shared/         # Componentes compartidos
+│   ├── context/            # Contextos de React
+│   ├── services/           # Servicios de API
+│   ├── routes/            # Configuración de rutas
+│   ├── styles/            # Estilos globales
+│   └── utils/             # Utilidades
+├── public/                # Archivos estáticos
+├── uploads/              # Archivos subidos por usuarios
+└── prototipo/           # Prototipos de diseño
+```
+
+## 🔒 Seguridad
+
+- Autenticación basada en JWT
+- Validación de roles y permisos
+- Encriptación de contraseñas con BCrypt
+- Validación de datos en frontend y backend
+- Sanitización de archivos subidos
+
+## 🐛 Solución de Problemas
+
+### Error de Conexión a la Base de Datos
+1. Verificar que MySQL esté ejecutándose
+2. Confirmar las credenciales en `backend.cjs`
+3. Asegurar que la base de datos `siga_app` existe
+
+### Error de Puerto en Uso
+```bash
+# Cambiar puerto del backend en backend.cjs
+const PORT = 4001; // Cambiar de 4000 a otro puerto
+
+# Para el frontend, modificar vite.config.js o usar:
+npm run dev -- --port 5174
+```
+
+### Problemas de CORS
+- El backend está configurado para permitir todas las origins en desarrollo
+- Para producción, configurar CORS específicamente
+
+## 📝 Contribución
+
+1. Fork del proyecto
+2. Crear rama de feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit de cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
+
+## 📄 Licencia
+
+Este proyecto es parte de un sistema de gestión aduanera y su uso está restringido según las políticas organizacionales.
+
+## 📞 Soporte
+
+Para soporte técnico o consultas sobre el sistema, contactar al equipo de desarrollo.
