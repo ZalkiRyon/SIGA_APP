@@ -258,3 +258,62 @@ INSERT INTO tramites_vehiculo (
   'cedula_af.pdf', 'licencia_af.pdf', 'revision_af.pdf', 'salida_af.pdf', NULL,
   'certificado_af.pdf', 'seguro_af.pdf', 'VEH-0005', 'Rechazado'
 );
+
+-- Trámites de vehículo para pasajero@siga.cl (ID 6)
+INSERT INTO tramites_vehiculo (
+  user_id, patente, marca, modelo, anio, color, fecha_inicio, fecha_termino,
+  archivo_cedula, archivo_licencia, archivo_revision, archivo_salida, archivo_autorizacion,
+  archivo_certificado, archivo_seguro, custom_id, estado
+) VALUES
+(
+  6, 'JKL123', 'Chevrolet', 'Onix', '2021', 'Blanco', '2025-06-10', '2025-12-10',
+  'cedula_6a.pdf', 'licencia_6a.pdf', 'revision_6a.pdf', 'salida_6a.pdf', NULL,
+  'certificado_6a.pdf', 'seguro_6a.pdf', 'VEH-0006', 'En revisión'
+),
+(
+  6, 'MNO456', 'Ford', 'Fiesta', '2019', 'Rojo', '2025-07-01', '2025-10-01',
+  'cedula_6b.pdf', 'licencia_6b.pdf', 'revision_6b.pdf', 'salida_6b.pdf', NULL,
+  'certificado_6b.pdf', 'seguro_6b.pdf', 'VEH-0007', 'Aprobado'
+),
+(
+  6, 'PQR789', 'Hyundai', 'Accent', '2020', 'Negro', '2025-08-15', '2025-11-15',
+  'cedula_6c.pdf', 'licencia_6c.pdf', 'revision_6c.pdf', 'salida_6c.pdf', NULL,
+  'certificado_6c.pdf', 'seguro_6c.pdf', 'VEH-0008', 'Rechazado'
+);
+
+-- Trámites de menores para pasajero@siga.cl (ID 6)
+INSERT INTO tramites_menores (
+  user_id, menor_nombres, menor_apellidos, menor_rut, menor_nacimiento,
+  acomp_nombres, acomp_apellidos, acomp_rut,
+  archivo_identidad, archivo_autorizacion, custom_id, estado
+) VALUES
+(
+  6, 'Valentina', 'Gómez Soto', '21.111.222-3', '2012-04-10',
+  'María', 'López', '12.345.678-9',
+  'identidad_6a.pdf', 'autorizacion_6a.pdf', 'MEN-0005', 'En revisión'
+),
+(
+  6, 'Ignacio', 'Gómez Soto', '22.333.444-5', '2015-09-22',
+  'María', 'López', '12.345.678-9',
+  'identidad_6b.pdf', 'autorizacion_6b.pdf', 'MEN-0006', 'Aprobado'
+),
+(
+  6, 'Camila', 'Gómez Soto', '23.555.666-7', '2017-12-05',
+  'María', 'López', '12.345.678-9',
+  'identidad_6c.pdf', 'autorizacion_6c.pdf', 'MEN-0007', 'Rechazado'
+);
+
+-- Trámites de alimentos/mascotas para pasajero@siga.cl (ID 6)
+INSERT INTO tramites_alimentos (
+  user_id, tipo, cantidad, transporte, descripcion, estado, fecha_creacion, fecha_aprobacion, fecha_rechazo, custom_id
+) VALUES
+  (6, 'vegetal', 2, 'Auto particular', 'Manzanas y peras', 'En revisión', '2025-06-20 10:00:00', NULL, NULL, 'VEG-0004'),
+  (6, 'animal', 1, 'Bus', 'Queso y jamón', 'Aprobado', '2025-06-15 09:00:00', '2025-06-18', NULL, 'ANI-0004'),
+  (6, 'mascota', 1, 'Auto particular', 'Perro salchicha, 4 años', 'Rechazado', '2025-06-10 08:00:00', NULL, '2025-06-12', 'MAS-0004');
+
+-- Documentos de mascota para el trámite rechazado
+INSERT INTO documentos_mascotas (tramite_id, tipo_mascota, archivo_registro, archivo_vacunas, archivo_desparasitacion, archivo_zoo)
+VALUES (
+  (SELECT id FROM tramites_alimentos WHERE custom_id = 'MAS-0004'),
+  'Perro', 'registro_6.pdf', 'vacunas_6.pdf', 'desparasitacion_6.pdf', 'zoo_6.pdf'
+);

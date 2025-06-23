@@ -97,7 +97,8 @@
 }
 
 .status-aprobado {
-  color: #388e3c;
+  background-color: #4caf50;
+  color: white;
 }
 
 .tramite-docs-list {

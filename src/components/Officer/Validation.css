@@ -212,6 +212,11 @@
   color: #d32f2f;
 }
 
+.status-aprobado {
+  background-color: #e6ffed;
+  color: #388e3c;
+}
+
 .btn-action {
   padding: 0.35rem 0.75rem;
   background: #0056b3;

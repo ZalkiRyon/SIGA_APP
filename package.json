@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "backend": "node backend.cjs"
+    "backend": "node backend.fixed.cjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

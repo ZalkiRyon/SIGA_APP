@@ -14,11 +14,10 @@ export default function TramiteDetailsModal({ tramite, onClose }) {
         
         <div className="tramite-modal-body">
           <div className="tramite-info-section">
-            <h3>Información General</h3>
-            <div className="tramite-info-grid">
+            <h3>Información General</h3>            <div className="tramite-info-grid">
               <div className="info-item">
                 <span className="info-label">ID:</span>
-                <span className="info-value">{tramite.id}</span>
+                <span className="info-value">{tramite.customId || tramite.id}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Tipo:</span>
@@ -26,7 +25,7 @@ export default function TramiteDetailsModal({ tramite, onClose }) {
               </div>
               <div className="info-item">
                 <span className="info-label">Estado:</span>
-                <span className={`info-value status-${tramite.estado === 'Rechazado' ? 'rechazado' : 'revision'}`}>
+                <span className={`info-value status-${tramite.estado === 'Rechazado' ? 'rechazado' : tramite.estado === 'Aprobado' ? 'aprobado' : 'revision'}`}>
                   {tramite.estado}
                 </span>
               </div>
@@ -38,6 +37,12 @@ export default function TramiteDetailsModal({ tramite, onClose }) {
                 <span className="info-label">Fecha de Creación:</span>
                 <span className="info-value">{tramite.fechaCreacion || 'No disponible'}</span>
               </div>
+              {tramite.fechaTermino && (
+                <div className="info-item">
+                  <span className="info-label">Fecha de Término:</span>
+                  <span className="info-value">{tramite.fechaTermino}</span>
+                </div>
+              )}
             </div>
           </div>
 

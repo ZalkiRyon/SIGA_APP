@@ -21,8 +21,7 @@ export default function Validation() {
   const [selectedTramite, setSelectedTramite] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  
-  // Cargar datos de trámites
+    // Cargar datos de trámites
   useEffect(() => {
     const loadTramites = async () => {
       setLoading(true);
@@ -42,19 +41,20 @@ export default function Validation() {
         setLoading(false);
       } catch (err) {
         console.error('Error al cargar trámites:', err);
-        setError('Error al cargar los trámites. Inténtelo de nuevo más tarde.');
+        setError('Error al cargar los trámites. ' + (err.message || 'Inténtelo de nuevo más tarde.'));
         setLoading(false);
+        setTramites([]);
       }
     };
 
     loadTramites();
   }, [currentPage]); // Solo se recarga cuando cambia la página
-
   // Filtrar trámites
   const handleFilter = async () => {
     setCurrentPage(1); // Volver a la primera página al filtrar
     try {
       setLoading(true);
+      setError(null);
       const response = await getTramitesValidacion({
         search: searchTerm,
         tipo: selectedType,
@@ -67,7 +67,8 @@ export default function Validation() {
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (err) {
       console.error('Error al filtrar trámites:', err);
-      setError('Error al filtrar los trámites. Inténtelo de nuevo más tarde.');
+      setError('Error al filtrar los trámites. ' + (err.message || 'Inténtelo de nuevo más tarde.'));
+      setTramites([]);
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,6 @@ export default function Validation() {
     setSelectedType('');
     // No limpiamos la fecha para mantenerla como en la imagen de ejemplo
   };
-
   // Ver detalles de un trámite
   const handleVerTramite = async (tramiteId) => {
     try {
@@ -89,7 +89,7 @@ export default function Validation() {
       setShowModal(true);
     } catch (err) {
       console.error('Error al cargar detalles del trámite:', err);
-      alert('No se pudieron cargar los detalles del trámite.');
+      alert('No se pudieron cargar los detalles del trámite. ' + (err.message || ''));
     } finally {
       setLoadingDetails(false);
     }
@@ -212,10 +212,9 @@ export default function Validation() {
                   <th>Acciones↑</th>
                 </tr>
               </thead>
-              <tbody>
-                {tramites.map((tramite) => (
+              <tbody>                {tramites.map((tramite) => (
                   <tr key={tramite.id} className="table-row">
-                    <td>#{tramite.id}</td>
+                    <td>#{tramite.customId || tramite.id}</td>
                     <td>{tramite.fechaInicio}</td>
                     <td>{tramite.tipo}</td>
                     <td>
